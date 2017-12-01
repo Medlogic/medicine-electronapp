@@ -1,6 +1,6 @@
 {
-	"debug": true,
-	"fullscreen": false,
+	"debug": false,
+	"fullscreen": true,
 	"window_width": 1100,
 	"window_height": 700,
 	"server_list": [

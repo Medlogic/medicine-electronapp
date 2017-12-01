@@ -27,7 +27,8 @@
     },
     "nsis": {
       "oneClick": "true",
-      "perMachine": "true"
+      "perMachine": "true",
+      "shortcutName": "Медицина"
     }
   },
   "scripts": {
