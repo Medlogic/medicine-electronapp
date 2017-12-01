@@ -2,7 +2,7 @@
   "name": "medicine",
   "productName": "Medicine",
   "description": "Hospital information system application",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "author": "MedLogic",
@@ -26,7 +26,7 @@
       "publish": ["github"]
     },
     "nsis": {
-      "oneClick": "false",
+      "oneClick": "true",
       "perMachine": "true"
     }
   },

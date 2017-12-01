@@ -6,10 +6,65 @@ html{
   
   .config{display: none;}
   .welcome{display: none1;}
-  .version{position: absolute; left: 20px; bottom: 20px; color: #aaa; font-size: 10px;}
+
+  #status-bar{text-align: center; position: absolute; left: 0; bottom: 0; height: 30px; width: 100%; 
+              color: #ccc; z-index: 100; background: #555; transition: height 2.0s;}
+  #status-message{top: 50%; width: 100%;  position: absolute;}
+  .offline #status-message, .offline .ml-logo, .ready #status-message, .ready .ml-logo{opacity: 0;}
+  .wait #status-message, .wait .ml-logo{opacity: 1;}
+  .notready #status-message, .notready .ml-logo{opacity: 1;}
+
+  .status-icon{position: absolute; right: 20px; bottom: 10px; height: 10px; width: 10px; background: #ccc; border-radius: 5px;}
+  .ready .status-icon{background-color: #76f11c}
+  .wait .status-icon{background-color: #f1c51c}
+  .offline .status-icon{background-color: #aaa}
+  .notready .status-icon{background-color: #e06969}
+
+  #status-bar.ready, #status-bar.offline{height: 30px;}
+  #status-bar.wait{height: 100%;}
+  #status-bar.notready{height: calc(100% - 60px);}
+  .version{position: absolute; left: 20px; bottom: 0; line-height: 30px; color: #f0f0f0; font-size: 10px;}
+
+  .ml-logo{
+    width: 100%;
+    background: url(./images/logo.png) no-repeat center;
+    background-size: contain;
+    height: 80px;}
+
+  .loading-widget {
+    display: none;
+    width: 200px;
+    top: calc(50% + 50px);
+    background: #333;
+    border: 1px solid #555;
+    height: 20px;
+    position: absolute;
+    left: calc(50% - 100px);
+  }
+    .loading-bar {
+      width: 0;
+      top: 0;
+      background: #72b761;
+      height: 20px;
+      position: absolute;
+      left: 0;
+    }
+    .loading-glow-stick {
+      left: 0;
+      width: 1px;
+      top: 0;
+      background: #5fea3d;
+      height: 20px;
+      position: absolute;
+      box-shadow: 0 0 7px #1aef3d;
+      z-index: 100000;
+    }
+
+
+  #menu-button{display: none;}
   .button{font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: none; padding: 5px 10px;}
   a.button:hover{color: #555; background-color: #ccc}
-  .close{position: absolute; right: 20px; bottom: 20px; color: #aaa;}
+  .close{position: absolute; left: 20px; top: 20px; color: #aaa;}
   .back{position: absolute; right: 20px; top: 20px; color: #aaa;}
   .add{
     color: rgb(79, 177, 110);
@@ -84,7 +139,6 @@ html{
   
   form{padding-bottom: 25px;}
 
-  #status{text-align: center; position: absolute; left: 0; bottom: 20px; width: 100%; color: #888; z-index: -100}
 
 
   .loading{    

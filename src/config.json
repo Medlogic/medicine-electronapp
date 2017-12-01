@@ -1,5 +1,5 @@
 {
-	"debug": false,
+	"debug": true,
 	"fullscreen": false,
 	"window_width": 1100,
 	"window_height": 700,

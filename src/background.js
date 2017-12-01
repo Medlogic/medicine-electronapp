@@ -206,13 +206,18 @@ const createMainWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {  
-  autoUpdater.checkForUpdatesAndNotify();
 
   updateConfig()
   welcome.createWelcomeWindow(store)
+  autoUpdater.checkForUpdatesAndNotify();
+  
+  welcome.welcomeWindow.webContents.on('did-finish-load', () => {
+    sendStatusToWindow('Подключение');
+  })
+
+
   if(!store.has('app_list') || store.get('app_list').length == 0)
     checkConnections()
-  //createWelcomeWindow()
 })
 
 
@@ -374,31 +379,28 @@ const checkConnections = () => {
   }
 }
 
-function sendStatusToWindow(text) {
-  //log.info(text);
-  welcome.welcomeWindow.webContents.send('message', text);
+function sendStatusToWindow(text, code) {
+  welcome.welcomeWindow.webContents.send('message', {"text": text, "code": code});
 }
 
-
 autoUpdater.on('checking-for-update', () => {
-  sendStatusToWindow('Checking for update...');
+  sendStatusToWindow('Поиск обновлений...');
 })
 autoUpdater.on('update-available', (info) => {
-  sendStatusToWindow('Update available.');
+  sendStatusToWindow('Доступны новые обновления');
 })
 autoUpdater.on('update-not-available', (info) => {
-  sendStatusToWindow('Update not available.');
+  sendStatusToWindow('Нет новых обновлений');
 })
 autoUpdater.on('error', (err) => {
-  sendStatusToWindow('Error in auto-updater. ' + err);
+  sendStatusToWindow('Ошибка при обновлении', err.message);  
 })
 autoUpdater.on('download-progress', (progressObj) => {
-  let log_message = "Download speed: " + progressObj.bytesPerSecond;
-  log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
-  log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
-  sendStatusToWindow(log_message);
+  sendStatusToWindow('Загрузка обновлений', progressObj.percent );
 })
 autoUpdater.on('update-downloaded', (info) => {
-  sendStatusToWindow('Update downloaded');
+  sendStatusToWindow('Обновление загружено');
+
+  autoUpdater.quitAndInstall();
 });
 

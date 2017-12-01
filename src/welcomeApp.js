@@ -74,13 +74,60 @@ export  const ShowConfig = () => {
 	})
 	
   require('electron').ipcRenderer.on('message' , function(event , data){
-    $('#status').html(data)
-    console.log(data)    
+    switch(data.text){
+      case 'Нет новых обновлений':
+      $('#status-bar').removeClass()
+        $('#status-bar').addClass('ready')
+      break
+      case 'Доступны новые обновления':
+      case 'Поиск обновлений...':
+      case 'Обновление загружено':
+      case 'Загрузка обновлений':
+      default:
+        if(data.text == 'Загрузка обновлений'){
+          $('.loading-widget').show();
+          $('.loading-glow-stick').css('left', data.code + '%')
+          $('.loading-bar').css('width', data.code + '%')
+        }else if(data.text == 'Обновление загружено'){
+          $('.loading-widget').fadeOut("slow");
+        }
+        
+        $('#status-bar').removeClass()
+        $('#status-bar').addClass('wait')
+      break;
+      case 'Подключение':
+      case 'Ошибка при обновлении':
+        if(data.code !== undefined && data.code == 'net::ERR_NAME_NOT_RESOLVED'){
+          data.text = 'No internet connection'
+          console.log(data.text)
+          $('#status-bar').removeClass()
+          $('#status-bar').addClass('offline')
+        }else{
+          $('#status-bar').removeClass()
+          $('#status-bar').addClass('notready')
+        }
+      break;
+    }
+    console.log(data)
+    $('#status-message').html(data.text)
+    //console.log(data)    
 	})
 	
 $('#exit-button').on('click', () => {Exit()});
 $('#back-button').on('click', () => {CloseConfig()});
 $('#menu-button').on('click', () => {ShowConfig()});
 //$('#enter-button').on('click', () => { Exit() });
+
+
+import { remote } from "electron";
+import jetpack from "fs-jetpack";
+import { greet } from "./hello_world/hello_world";
+import env from "env";
+
+const app = remote.app;
+const appDir = jetpack.cwd(app.getAppPath());
+const manifest = appDir.read("package.json", "json");
+//console.log(manifest)
+//console.log(process.versions)
 document.querySelector("#electron-version").innerHTML =
-  process.versions.electron;
+manifest.version;

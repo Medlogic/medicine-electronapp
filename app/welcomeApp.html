@@ -38,8 +38,19 @@
   </div>
 
   <a id="exit-button" class="button close" href="#" onclick="">Выход</a>
-  <div id="status"><strong id="electron-version"></strong></div>
-  <div class="version">МЕДИЦИНА v<strong id="electron-version"></strong></div>
+
+  <div id="status-bar" class="notready">
+    <div class="status-icon"></div>
+    <div id="status-message"></div>
+    <div class="ml-logo"></div>
+    <div class="loading-widget">
+      <div class="loading-glow-stick"></div>
+      <div class="loading-bar"></div>
+    </div>
+
+    <div class="version">МЕДИЦИНА v<strong id="electron-version"></strong></div>
+  </div>
+  
   <script src="welcomeapp.js"></script>
 </body>
 </html>
