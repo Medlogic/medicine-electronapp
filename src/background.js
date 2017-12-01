@@ -376,7 +376,7 @@ const checkConnections = () => {
 
 function sendStatusToWindow(text) {
   //log.info(text);
-  win.webContents.send('message', text);
+  welcome.welcomeWindow.webContents.send('message', text);
 }
 
 

@@ -20,14 +20,14 @@ html{
   input{font-size: 14px; padding: 5px 10px; margin: 10px;}
   .col6{width: 50%; float: left; margin-top: 50px;}
 
-  .cEnter{text-align: cEnter;}
+  .center{text-align: center;}
 
   .vertical-line{ position: absolute; width: 1px; height: 100%; left: 50%; background: #ddd}
   
   .welcome{
     display: flex;
-    align-items: cEnter;
-    justify-content: cEnter;
+    align-items: center;
+    justify-content: center;
     height: 100%;
   }
   .welcome .col12{    width: 530px; text-align: center;}
@@ -46,7 +46,7 @@ html{
     background: #fafafa;
     box-shadow: 0 0 20px rgba(255, 192, 192, 0.5);
     }
-  .welcome a>.title{text-align: cEnter; width: 100%; text-transform: uppercase; color: #646464;}
+  .welcome a>.title{text-align: center; width: 100%; text-transform: uppercase; color: #646464;}
   .welcome a.item>.icon{
     position: absolute;
     width: 75px;
@@ -68,7 +68,7 @@ html{
   .welcome a>.params{
     position: absolute;
     bottom: 5px;
-    text-align: cEnter;
+    text-align: center;
     font-size: 10px;
     width: 100%;
     left: 0;
@@ -83,6 +83,10 @@ html{
   .config li>span{margin-right: 15px; }
   
   form{padding-bottom: 25px;}
+
+  #status{text-align: center; position: absolute; left: 0; bottom: 20px; width: 100%; color: #888; z-index: -100}
+
+
   .loading{    
     position: absolute;
     width: 100%;

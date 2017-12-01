@@ -21,7 +21,7 @@ export const createWelcomeWindow = (store) => {
     resizable: false
   })
 
-  //welcomeWindow.webContents.openDevTools()
+  welcomeWindow.webContents.openDevTools()
   welcomeWindow.loadURL(
     URL.format({
       pathname: path.join(__dirname, "welcomeApp.html"),

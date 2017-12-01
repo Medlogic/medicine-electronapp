@@ -1,8 +1,5 @@
 {
   "name": "production",
-  "description": "Add here any environment specific stuff you like.",
-  "GH_TOKEN": {
-    "provider": "github"
-  }
+  "description": "Add here any environment specific stuff you like."
   
 }

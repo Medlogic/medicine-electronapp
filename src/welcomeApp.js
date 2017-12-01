@@ -73,6 +73,10 @@ export  const ShowConfig = () => {
     $('.welcome>.col12').html("Поиск доступных серверов...<br/><br/><br/><br/><p><b>Внимание!</b></p><p><b>Процесс начальной инициализации может длиться до 1 минуты!</b></p>")
 	})
 	
+  require('electron').ipcRenderer.on('message' , function(event , data){
+    $('#status').html(data)
+    console.log(data)    
+	})
 	
 $('#exit-button').on('click', () => {Exit()});
 $('#back-button').on('click', () => {CloseConfig()});
