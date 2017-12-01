@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+  <link href="/application/assets/components/bootstrap/css/bootstrap.css" rel="stylesheet" media="screen">
+  <link href="/application/assets/css/theme.css" rel="stylesheet" type="text/css" media="screen">
+  <link href="/application/assets/css/print.css" rel="stylesheet" type="text/css" media="print">
+</head>
+
+<body ng-controller="AppCtrl">
+
+  <script type="text/ng-template" id="empty">qwe</script>
+
+<div id="print" ng-if="template_url">
+  <ng-include src="template_url"></ng-include>
+</div>
+
+<script>
+  const {shell, ipcRenderer} = require('electron')
+  //const $ = require('jQuery')
+  //const printer = require('printer')
+</script>
+
+<script>if (typeof module === 'object') { window.module = module; module = undefined; }</script>
+<script src="/application/components/jquery/dist/jquery.min.js"></script>
+<script src="/application/components/angular/angular.min.js"></script>
+
+<script src="/application/components/string-format/string-format.js"></script>
+<script src="/application/components/lodash/dist/lodash.js"></script>
+<script src="/application/components/is_js/is.js"></script>
+<script src="/application/components/urijs/src/URI.js"></script>
+<script src="/application/components/moment/moment.js"></script>
+<script src="/application/components/moment/locale/ru.js"></script>
+<script src="/application/components/moment-range/dist/moment-range.js"></script>
+<script src="/application/components/angular-sanitize/angular-sanitize.js"></script>
+<script src="/application/components/i18n/angular-locale_ru-ru.js"></script>
+<script src="/application/components/ngstorage/ngStorage.js"></script>
+<script src="/application/components/angular-resource/angular-resource.js"></script>
+<script src="/application/components/angular-filter/dist/angular-filter.js"></script>
+<script src="/application/components/angular-moment/angular-moment.js"></script>
+
+<script src="/application/scripts/app.js"></script>
+<script src="/application/config/settings.js"></script>
+
+<script src="/application/directives/Layout.js"></script>
+<script src="/application/factories/Patient.js"></script>
+<script src="/application/factories/PatientAddress.js"></script>
+<script src="/application/factories/User.js"></script>
+<script src="/application/factories/Model.js"></script>
+<script src="/application/factories/Layout.js"></script>
+<script src="/application/filters/Default.js"></script>
+<script src="/application/interceptors/TemplateUrl.js"></script>
+
+<script src="/application/services/UserService.js"></script>
+<script src="/application/services/TimeService.js"></script>
+
+
+<script src="/application/factories/PatientAttach.js"></script>
+<script src="/application/controllers/patient/attach/PatientAttach.js"></script>
+
+<script>
+        app.controller('AppCtrl', ['$scope', '$timeout', '$interval', function ($scope, $timeout, $interval) {
+          const fs = require('fs')
+          const os = require('os')
+          const path = require('path')
+          let win = require('electron').remote.getCurrentWindow()
+          const execFile = require('child_process').execFile;
+          const execute = require('child_process').exec;
+
+          $scope.template_url = undefined;
+
+          $scope.setLayout = function (arg) {
+            $scope.template_url = 'empty';
+            $scope.$apply();
+
+            _.merge($scope, arg['params']);
+            $scope.layout = arg['layout'];
+            $scope.template_url = $scope.layout.template_url;
+            $scope.$apply();
+          }
+
+          ipcRenderer.on('content', (event, arg) => {
+            $scope.setLayout(arg);
+
+            var ii = 0;
+            let canPrint = false;
+            var interval_print = $interval(function () {
+              ii++; 
+
+              if($('#print').children().children().first().prop("tagName") == 'TABLE')
+                  canPrint = true;
+              else if($scope.$root.loadData_query != undefined){
+                if($scope.$root.loadData_query.ordering != undefined)
+                  canPrint = true;             
+              }else if(ii > 3 && $scope.layout.model_name != "report.report")
+                  canPrint = true;
+
+              if(ii > 150)
+                $interval.cancel(interval_print)
+
+              if (canPrint){
+                if($scope.$root.loadData_query != undefined)
+                  $scope.$root.loadData_query = undefined
+                $interval.cancel(interval_print)
+                let pdfOptions = {
+                  landscape: arg['orientation'] == 'landscape',
+                  pageSize: 'A4'
+                }
+                win.webContents.printToPDF(pdfOptions, (error, data) => {
+                  if (error) throw error
+
+                  if (process.platform == 'win32') {
+                    // win 32
+                    let pdfPath = path.join(os.tmpdir(), 'print' + new Date().getTime() + '.pdf')
+                    fs.writeFile(pdfPath, data, (error) => {
+                      if (error) {
+                        win.webContents.reloadIgnoringCache()   
+                        throw error
+                      }
+                      
+                      let sumatraPrintSettings = arg['duplex'] == true ? ['-print-to-default', '-print-settings', '"duplexlong"', pdfPath] : ['-print-to-default', pdfPath]
+                      execFile(__dirname + '/SumatraPDF.exe', sumatraPrintSettings, (error, stdout, stderr) => {
+                        win.webContents.reloadIgnoringCache()   
+                        if (error) {
+                          fs.unlink(pdfPath)
+                          throw error;
+                        }
+                        fs.unlink(pdfPath)    
+                      });
+                      //shell.openExternal('file://' + pdfPath)
+                    })
+
+
+                  } else if (process.platform == 'linux') {
+                    // linux
+                    let pdfPath = path.join(os.tmpdir(), 'print' + new Date().getTime() + '.pdf')
+                    fs.writeFile(pdfPath, data, (error) => {
+                      if (error) {
+                        throw error
+                      }
+
+                      execute('lpr ' + pdfPath, (error, stdout) => {
+                        win.webContents.reloadIgnoringCache()
+                        if (error)
+                          throw error;
+
+                        fs.unlink(pdfPath)
+                      })
+                    })
+
+                  }
+                  else {
+                    // other os
+                    printer.printDirect({
+                      data: data,
+                      silent: false,
+                      type: 'PDF',
+                      success: function (id) {
+                        console.log('printed with id ' + id);
+                      },
+                      error: function (err) {
+                        console.error('error on printing: ' + err);
+                      }
+                    })
+                  }
+                })
+              } 
+            }, 400)
+
+          })
+        }])
+</script>
+</body>
+
+</html>

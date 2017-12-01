@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title></title>
+</head>
+
+<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>  
+<script src="assets/jquery-3.2.1.min.js"></script>
+
+<body>
+  <div class="loading">
+    <div class="spinner">
+      <div class="bounce1"></div>
+      <div class="bounce2"></div>
+      <div class="bounce3"></div>
+    </div>
+  </div>
+  <div class="welcome"> 
+    <div class="col12">
+        <div class="flex"></div>
+    </div>
+    
+    <a id="menu-button" class="button back" href="#" onclick="welcome.ShowConfig()">☰</a>
+  </div>
+
+  <div class="config">    
+    <div class="col6 cEnter">
+        
+    </div>
+    <div class="vertical-line"></div>
+    <div class="col6">
+      <ul >
+      </ul>
+    </div>
+
+    <a id="back-button" class="button back" href="#" onclick="welcome.CloseConfig()">🡠</a>
+  </div>
+
+  <a id="exit-button" class="button close" href="#" onclick="">Выход</a>
+  <div class="version">МЕДИЦИНА v<strong id="electron-version"></strong></div>
+  <script src="welcomeapp.js"></script>
+</body>
+</html>
