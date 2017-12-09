@@ -5,20 +5,15 @@ import {
   BrowserWindow  
 } from 'electron';
 
-
-// const storeOptions = {"name": "app_config" }
-// const Store = require('electron-store');
-// export const store = new Store(storeOptions);
-
 export let welcomeWindow
-
 
 export const createWelcomeWindow = (store) => {
   welcomeWindow = new BrowserWindow({
     width: 600, 
     height: 440, 
     frame: false,
-    resizable: false
+    resizable: false,
+    show: false
   })
 
   //welcomeWindow.webContents.openDevTools()
@@ -31,6 +26,7 @@ export const createWelcomeWindow = (store) => {
   )
   
   welcomeWindow.webContents.on('did-finish-load', () => {
+    welcomeWindow.show()
     if(!store.has('app_list') || store.get('app_list').length == 0)
       welcomeWindow.webContents.send('check_connections' );
     else

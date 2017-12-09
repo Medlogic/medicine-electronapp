@@ -79,10 +79,11 @@ module.exports = require("fs-jetpack");
 /* 2 */
 /***/ (function(module, exports) {
 
-module.exports = {"name":"production","description":"Add here any environment specific stuff you like."}
+module.exports = {"name":"production","debug":false,"fullscreen":true,"window_width":1100,"window_height":700,"app_list_version":1,"server_list":["http://192.168.0.201:80","http://192.168.0.202:80","http://192.168.0.203:80","http://192.168.0.204:80","http://192.168.1.201:80","http://192.168.1.202:80","http://192.168.1.203:80","http://192.168.1.204:80","http://192.168.1.165:80"]}
 
 /***/ }),
-/* 3 */
+/* 3 */,
+/* 4 */
 /***/ (function(module, exports) {
 
 /*
@@ -164,7 +165,7 @@ function toComment(sourceMap) {
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -220,7 +221,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(5);
+var	fixUrls = __webpack_require__(6);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -536,7 +537,7 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports) {
 
 
@@ -631,7 +632,7 @@ module.exports = function (css) {
 
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -655,7 +656,6 @@ const bye = () => {
 exports.bye = bye;
 
 /***/ }),
-/* 7 */,
 /* 8 */,
 /* 9 */,
 /* 10 */,
@@ -690,13 +690,13 @@ var _electron = __webpack_require__(0);
 
 var _fsJetpack = _interopRequireDefault(__webpack_require__(1));
 
-var _hello_world = __webpack_require__(6);
+var _hello_world = __webpack_require__(7);
 
 var _env = _interopRequireDefault(__webpack_require__(2));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var apps;
+var apps; //const ORIENTATION = Enum("NORTH", "SOUTH", "WEST", "EAST")
 
 const Exit = () => {
   __webpack_require__(0).ipcRenderer.send('exit-application');
@@ -775,8 +775,11 @@ __webpack_require__(0).ipcRenderer.on('load', function (event, data) {
 
 __webpack_require__(0).ipcRenderer.on('check_connections', function (event, data) {
   $('.loading').fadeIn();
-  $('.welcome>.col12').html("Поиск доступных серверов...<br/><br/><br/><br/><p><b>Внимание!</b></p><p><b>Процесс начальной инициализации может длиться до 1 минуты!</b></p>");
-});
+  $('.welcome>.col12').html("Поиск доступных серверов...<br><br><br><br><br><br><br><p></p>");
+}); // ПРОВЕРКА ОБНОВЛЕНИЙ
+// 
+// 
+
 
 __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
   switch (data.text) {
@@ -785,6 +788,7 @@ __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
       $('#status-bar').addClass('ready');
       break;
 
+    case 'Подключение':
     case 'Доступны новые обновления':
     case 'Поиск обновлений...':
     case 'Обновление загружено':
@@ -802,11 +806,8 @@ __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
       $('#status-bar').addClass('wait');
       break;
 
-    case 'Подключение':
     case 'Ошибка при обновлении':
       if (data.code !== undefined && data.code == 'net::ERR_NAME_NOT_RESOLVED') {
-        data.text = 'No internet connection';
-        console.log(data.text);
         $('#status-bar').removeClass();
         $('#status-bar').addClass('offline');
       } else {
@@ -855,7 +856,7 @@ var transform;
 var options = {"hmr":true}
 options.transform = transform
 // add the styles to the DOM
-var update = __webpack_require__(4)(content, options);
+var update = __webpack_require__(5)(content, options);
 if(content.locals) module.exports = content.locals;
 // Hot Module Replacement
 if(false) {
@@ -875,7 +876,7 @@ if(false) {
 /* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(3)(undefined);
+exports = module.exports = __webpack_require__(4)(undefined);
 // imports
 
 

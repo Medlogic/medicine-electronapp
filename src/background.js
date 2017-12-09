@@ -16,10 +16,10 @@ const fs = require('fs')
 const os = require('os')
 
 const http = require("http")
+const ping = require("ping")
 
-
-let config = require('./config.json');
-config.app_list=[]
+//let config = require('./env.json');
+env.app_list=[]
 const storeOptions = {"name": "app_config" }
 const Store = require('electron-store');
 const store = new Store(storeOptions);
@@ -35,7 +35,6 @@ import env from "env";
 import * as welcome from "./welcomeBackground.js"
 let mainWindow
 let printWindow
-//process.env.GH_TOKEN = {}
 
 const replaceUrls = [
     [/^http(.*)\/application\/lib\/compatibility.js$/, '/application/scripts/compatibility.js'],
@@ -48,23 +47,28 @@ let args = process.argv.slice(process.platform == 'win32' ? 1 : 2)
 const updateConfig = () => {
   for (var i in args) {
     var option = args[i].replace(/^--/, '').split('=')
-    config[option[0]] = option[1]
+    env[option[0]] = option[1]
   }
-  if(store.has('app_list'))
-    config.app_list = store.get('app_list')
 
-  let apps =  config.app_list// store.get('applications') 
+  if( env.app_list_version != store.get('app_list_version') ){
+    store.delete('app_list')
+    store.set('app_list_version', env.app_list_version)
+  }
+
+  if(store.has('app_list'))
+    env.app_list = store.get('app_list')
+
+  let apps =  env.app_list// store.get('applications') 
   for(let app in apps){
-    if (apps[app].app_title == config.selected_app ){
+    if (apps[app].app_title == env.selected_app ){
       var app_url = URL.parse(apps[app].app_url)
       
-      config.app_url = apps[app].app_url// 'http://' + apps[app].host + ':' + apps[app].port
-      config.app_host = app_url.hostname
-      config.app_port = app_url.port
+      env.app_url = apps[app].app_url// 'http://' + apps[app].host + ':' + apps[app].port
+      env.app_host = app_url.hostname
+      env.app_port = app_url.port
     }
   }
 }
-
 
 
 const createMainWindow = () => {
@@ -93,33 +97,33 @@ const createMainWindow = () => {
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: config.window_width,
-    height: config.window_heigh,
-    minWidth: config.window_min_width,
-    minHeight: config.window_min_height,
+    width: env.window_width,
+    height: env.window_heigh,
+    minWidth: env.window_min_width,
+    minHeight: env.window_min_height,
     autoHideMenuBar: true,
     show: false
   })
 
   // and load the index.html of the app.
   mainWindow.webContents.session.clearCache(() => {});
-  mainWindow.loadURL(config.app_url, {
+  mainWindow.loadURL(env.app_url, {
     userAgent: 'electron'
   })
 
   printWindow = new BrowserWindow({
-    show: false //(config.debug && config.debug != 'false')
+    show: false //(env.debug && env.debug != 'false')
   })
 
-  if(config.selected_app !== undefined)
+  if(env.selected_app !== undefined)
     mainWindow.once('ready-to-show', () => {
       mainWindow.show();
 
 
-      if (config.fullscreen && config.fullscreen != 'false')
+      if (env.fullscreen && env.fullscreen != 'false')
         mainWindow.maximize()
         
-      if (config.debug) 
+      if (env.debug) 
         printWindow.show();
 
       welcome.welcomeWindow.hide();
@@ -163,7 +167,7 @@ const createMainWindow = () => {
     if (props.isEditable) menu.popup(mainWindow);
   });
 
-  if (config.debug && config.debug != 'false') {
+  if (env.debug && env.debug != 'false') {
     printWindow.webContents.openDevTools()
     mainWindow.webContents.openDevTools()
   }
@@ -173,7 +177,7 @@ const createMainWindow = () => {
     if (regexRedirect.test(details['url'])) {
       let url = '/' + details['url'].replace(/^file:.*\/(api|application)/, '$1')
       details = {
-        'redirectURL': config.app_url + url
+        'redirectURL': env.app_url + url
       }
     }
 
@@ -181,7 +185,7 @@ const createMainWindow = () => {
       var regex = replaceUrls[i][0]
       if (regex.test(details['url'])) {
         details = {
-          'redirectURL': config.app_url + replaceUrls[i][1]
+          'redirectURL': env.app_url + replaceUrls[i][1]
         }
         break;
       }
@@ -211,33 +215,25 @@ app.on('ready', () => {
   welcome.createWelcomeWindow(store)
   autoUpdater.checkForUpdatesAndNotify();
   
-  welcome.welcomeWindow.webContents.on('did-finish-load', () => {
-    sendStatusToWindow('Подключение');
+  welcome.welcomeWindow.webContents.on('did-finish-load', () => {     
+    if(env.name == 'development')    
+      sendStatusToWindow('Нет новых обновлений');
+    else
+      sendStatusToWindow('Подключение');
   })
 
-
-  if(!store.has('app_list') || store.get('app_list').length == 0)
-    checkConnections()
+  if(!store.has('app_list') || store.get('app_list').length == 0 ){
+    pingServers()
+  }
 })
 
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
-
-// app.on('activate', () => {
-//   // On OS X it's common to re-create a window in the app when the
-//   // dock icon is clicked and there are no other windows open.
-//   if (mainWindow === null) {
-//     updateConfig()
-//     welcome.createWelcomeWindow();
-//   }
-// });
 
 ipcMain.on('print-content', (event, arg) => {
   if(arg.layout.pdf_url !== undefined){
@@ -246,7 +242,7 @@ ipcMain.on('print-content', (event, arg) => {
     const execFile = require('child_process').execFile;
 
 
-    http.get(config.app_url + arg.layout.pdf_url, response =>
+    http.get(env.app_url + arg.layout.pdf_url, response =>
     {
       response.pipe(file);
 
@@ -256,7 +252,7 @@ ipcMain.on('print-content', (event, arg) => {
         if (error)
         {
           fs.unlink(fileName)
-          if(config.debug) throw error;
+          if(env.debug) throw error;
         }else{
           fs.unlink(fileName)
         }
@@ -286,8 +282,8 @@ ipcMain.on('print', (event, arg) => {
         }
 
       let httpOptions = {
-        hostname: config.app_host,
-        port: config.app_port,
+        hostname: env.app_host,
+        port: env.app_port,
         path: arg.url,
         method: 'GET',
         headers: {
@@ -302,7 +298,7 @@ ipcMain.on('print', (event, arg) => {
         let sumatraPrintSettings = arg.duplex === true ? ['-print-to-default', '-print-settings', 'duplexlong', fileName] : ['-print-to-default', fileName]
         execFile(__dirname + '\\SumatraPDF.exe', sumatraPrintSettings, (error, stdout, stderr) => {
             if (error) {
-                if (config.debug) throw error;
+                if (env.debug) throw error;
             }
 
             fs.unlink(fileName)
@@ -315,14 +311,13 @@ ipcMain.on('print', (event, arg) => {
 });
 
 ipcMain.on('download', (event, args) => {
-    download(BrowserWindow.getFocusedWindow(), config.app_url + args.url, {saveAs: true, openFolderWhenDone: true})
+    download(BrowserWindow.getFocusedWindow(), env.app_url + args.url, {saveAs: true, openFolderWhenDone: true})
         .then(dl => console.log(dl.getSavePath()))
         .catch(console.error);
 });
 
 ipcMain.on('load-application', (event, args) => {
-  //console.log(args)
-  config.selected_app = args;
+  env.selected_app = args;
   
   updateConfig()
   createMainWindow();
@@ -335,13 +330,31 @@ ipcMain.on('exit-application', (event, args) => {
   mainWindow = null
 });
 
+const pingServers = () => {
+  var exec = require('child_process').exec;
+  env.active_server_list = []
+  let count = 0
 
+  for(let arg in env.server_list ){    
+    exec("ping -n 1 " + URL.parse(env.server_list[arg]).hostname, (error, stdout, stderr) => {      
+      count += 1;
+      if(error == null)
+        env.active_server_list.push(env.server_list[arg])
+      // else
+      //   console.log(env.server_list[arg] + ' is dead')
+
+      if(count == env.server_list.length)
+        checkConnections()
+    });
+  }
+}
 
 const checkConnections = () => {
- 
   let count = 0
-  for(let arg in config.server_list ){
-    http.get(config.server_list[arg]+'/api/1/config/', (response) => {
+  env.app_list = []
+
+  for(let arg in env.active_server_list ){
+    http.get(env.active_server_list[arg]+'/api/1/config/', (response) => {
       count += 1; 
       response.setEncoding('utf8');
       let rawData = '';
@@ -354,24 +367,24 @@ const checkConnections = () => {
         try {
           const parsedData = JSON.parse(rawData);
           if(parsedData !== undefined && parsedData.APP_TITLE !== undefined){
-            config.app_list.push({'app_url': config.server_list[arg], 'app_title': parsedData.APP_TITLE})
+            env.app_list.push({'app_url': env.active_server_list[arg], 'app_title': parsedData.APP_TITLE})
           }
           
-          if(count == config.server_list.length){
-            store.set('app_list', config.app_list)
+          if(count == env.active_server_list.length){
+            store.set('app_list', env.app_list)
             welcome.updateWelcomeWindow(store.get('app_list'));
           }
         } catch (e) {
-          if(count == config.server_list.length){
-            store.set('app_lis', config.app_list)
+          if(count == env.active_server_list.length){
+            store.set('app_list', env.app_list)
             welcome.updateWelcomeWindow(store.get('app_list'));
           }
         }
       });
     }).on('error', (e) => {
       count += 1;
-      if(count == config.server_list.length){
-        store.set('app_list', config.app_list)
+      if(count == env.active_server_list.length){
+        store.set('app_list', env.app_list)
         welcome.updateWelcomeWindow(store.get('app_list')
       );
       }

@@ -1,5 +1,22 @@
 {
   "name": "production",
-  "description": "Add here any environment specific stuff you like."
+	"debug": false,
+	"fullscreen": true,
+	"window_width": 1100,
+	"window_height": 700,
+	"app_list_version": 1,
+	"server_list": [
+	  "http://192.168.0.200:80",
+	  "http://192.168.0.201:80",
+	  "http://192.168.0.202:80",
+	  "http://192.168.0.203:80",
+	  "http://192.168.0.204:80",
+	  "http://192.168.1.200:80",
+	  "http://192.168.1.201:80",
+	  "http://192.168.1.202:80",
+	  "http://192.168.1.203:80",
+	  "http://192.168.1.204:80",
+	  "http://192.168.1.165:80"
+	]
   
 }
