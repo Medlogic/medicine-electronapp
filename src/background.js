@@ -24,6 +24,8 @@ const storeOptions = {"name": "app_config" }
 const Store = require('electron-store');
 const store = new Store(storeOptions);
 
+let SerialPort = require('serialport');
+
 //import { devMenuTemplate } from "./menu/dev_menu_template";
 //import { editMenuTemplate } from "./menu/edit_menu_template";
 import createWindow from "./helpers/window";
@@ -35,6 +37,7 @@ import env from "env";
 import * as welcome from "./welcomeBackground.js"
 let mainWindow
 let printWindow
+
 
 const replaceUrls = [
     [/^http(.*)\/application\/lib\/compatibility.js$/, '/application/scripts/compatibility.js'],
@@ -72,7 +75,7 @@ const updateConfig = () => {
 
 
 const createMainWindow = () => {
-  mainWindow = null
+  mainWindow = null     
 
   let shouldQuit = app.makeSingleInstance(function (commandLine, workingDirectory) {
     if (mainWindow) {
@@ -94,6 +97,7 @@ const createMainWindow = () => {
   let w = Math.round((height / 100 * 27) * 0.9);
   let h = Math.round(height / 100 * 27);
   
+  ScanSerialPort();   
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -118,7 +122,6 @@ const createMainWindow = () => {
   if(env.selected_app !== undefined)
     mainWindow.once('ready-to-show', () => {
       mainWindow.show();
-
 
       if (env.fullscreen && env.fullscreen != 'false')
         mainWindow.maximize()
@@ -213,14 +216,17 @@ app.on('ready', () => {
 
   updateConfig()
   welcome.createWelcomeWindow(store)
-  autoUpdater.checkForUpdatesAndNotify();
-  
+
   welcome.welcomeWindow.webContents.on('did-finish-load', () => {     
     if(env.name == 'development')    
       sendStatusToWindow('Нет новых обновлений');
     else
       sendStatusToWindow('Подключение');
   })
+
+  setTimeout(function() {
+    autoUpdater.checkForUpdatesAndNotify();  
+  }, 500)
 
   if(!store.has('app_list') || store.get('app_list').length == 0 ){
     pingServers()
@@ -417,3 +423,28 @@ autoUpdater.on('update-downloaded', (info) => {
   autoUpdater.quitAndInstall();
 });
 
+//
+// просмотр ком-портов и выбор сканера-штрихкодов
+//
+const ScanSerialPort = (port) => {
+  SerialPort.list(function (err, ports) {
+    ports.forEach(function(port) {
+      console.log(port);
+      if(port.vendorId == '0C2E'){
+        InitBarcodeScanner(port.comName)
+      }
+    }); 
+  });
+}
+
+const InitBarcodeScanner = (port) => {
+  let scanner = new SerialPort(port);
+
+  scanner.on('data', function (data) {
+    var arr = []
+    for (const pair of data.entries()) {
+      arr.push(pair[1])
+    }
+    mainWindow.webContents.send('search_beep', {code: arr} );
+  });
+}

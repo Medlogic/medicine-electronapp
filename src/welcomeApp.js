@@ -62,11 +62,6 @@ require('electron').ipcRenderer.on('load', function (event, data)
       welcomeList += '<div class="params"><span>' + apps[app].app_url + '</span></div></a>'
     }
 
-    //Auto startup 
-    if (apps.length == 1)
-    {
-      //Enter(apps[0].app_title)
-    }
 
     $('.config').find('ul').html(configList)
     $('.welcome>.col12').html(welcomeList)
@@ -96,8 +91,15 @@ require('electron').ipcRenderer.on('message', function (event, data)
   switch (data.text)
   {
     case 'Нет новых обновлений':
+    case 'Ошибка при обновлении':
       $('#status-bar').removeClass()
       $('#status-bar').addClass('ready')
+      //Auto startup 
+      if (apps.length == 1 )
+      {
+        Enter(apps[0].app_title)
+      }
+
       break
     case 'Подключение':
     case 'Доступны новые обновления':
@@ -118,17 +120,17 @@ require('electron').ipcRenderer.on('message', function (event, data)
       $('#status-bar').removeClass()
       $('#status-bar').addClass('wait')
       break
-    case 'Ошибка при обновлении':
-      if (data.code !== undefined && data.code == 'net::ERR_NAME_NOT_RESOLVED')
-      {
-        $('#status-bar').removeClass()
-        $('#status-bar').addClass('offline')
-      } else
-      {
-        $('#status-bar').removeClass()
-        $('#status-bar').addClass('notready')
-      }
-      break
+    // case 'Ошибка при обновлении':
+    //   if (data.code !== undefined && data.code == 'net::ERR_NAME_NOT_RESOLVED')
+    //   {
+    //     $('#status-bar').removeClass()
+    //     $('#status-bar').addClass('offline')
+    //   } else
+    //   {
+    //     $('#status-bar').removeClass()
+    //     $('#status-bar').addClass('notready')
+    //   }
+    //   break
   }
   console.log(data)
   $('#status-message').html(data.text)
@@ -143,7 +145,7 @@ $('#menu-button').on('click', () => { ShowConfig() });
 
 import { remote } from "electron";
 import jetpack from "fs-jetpack";
-import { greet } from "./hello_world/hello_world";
+//import { greet } from "./hello_world/hello_world";
 import env from "env";
 
 const app = remote.app;

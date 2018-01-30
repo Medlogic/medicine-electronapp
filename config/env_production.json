@@ -4,8 +4,9 @@
 	"fullscreen": true,
 	"window_width": 1100,
 	"window_height": 700,
-	"app_list_version": 1,
+	"app_list_version": 2,
 	"server_list": [
+		"http://medicine:80",
 	  "http://192.168.0.200:80",
 	  "http://192.168.0.201:80",
 	  "http://192.168.0.202:80",

@@ -79,7 +79,7 @@ module.exports = require("fs-jetpack");
 /* 2 */
 /***/ (function(module, exports) {
 
-module.exports = {"name":"production","debug":false,"fullscreen":true,"window_width":1100,"window_height":700,"app_list_version":1,"server_list":["http://192.168.0.201:80","http://192.168.0.202:80","http://192.168.0.203:80","http://192.168.0.204:80","http://192.168.1.201:80","http://192.168.1.202:80","http://192.168.1.203:80","http://192.168.1.204:80","http://192.168.1.165:80"]}
+module.exports = {"name":"development","debug":true,"fullscreen":true,"window_width":1100,"window_height":700,"app_list_version":2,"server_list":["http://medicine:80","http://192.168.0.201:80","http://192.168.0.202:80","http://192.168.0.203:80","http://192.168.0.204:80","http://192.168.1.201:80","http://192.168.1.202:80","http://192.168.1.203:80","http://192.168.1.204:80","http://192.168.1.165:80","http://192.168.2.201:80","http://192.168.2.202:80","http://192.168.2.203:80","http://192.168.2.204:80","http://192.168.3.201:80","http://192.168.3.202:80","http://192.168.3.203:80","http://192.168.3.204:80"]}
 
 /***/ }),
 /* 3 */,
@@ -234,7 +234,7 @@ module.exports = function(list, options) {
 
 	// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
 	// tags it will allow on a page
-	if (!options.singleton) options.singleton = isOldIE();
+	if (!options.singleton && typeof options.singleton !== "boolean") options.singleton = isOldIE();
 
 	// By default, add <style> tags to the <head> element
 	if (!options.insertInto) options.insertInto = "head";
@@ -632,30 +632,7 @@ module.exports = function (css) {
 
 
 /***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.bye = exports.greet = void 0;
-
-const greet = () => {
-  return "Hello World!";
-};
-
-exports.greet = greet;
-
-const bye = () => {
-  return "See ya!";
-};
-
-exports.bye = bye;
-
-/***/ }),
+/* 7 */,
 /* 8 */,
 /* 9 */,
 /* 10 */,
@@ -689,8 +666,6 @@ __webpack_require__(26);
 var _electron = __webpack_require__(0);
 
 var _fsJetpack = _interopRequireDefault(__webpack_require__(1));
-
-var _hello_world = __webpack_require__(7);
 
 var _env = _interopRequireDefault(__webpack_require__(2));
 
@@ -757,10 +732,6 @@ __webpack_require__(0).ipcRenderer.on('load', function (event, data) {
       }
 
       welcomeList += '<div class="params"><span>' + apps[app].app_url + '</span></div></a>';
-    } //Auto startup 
-
-
-    if (apps.length == 1) {//Enter(apps[0].app_title)
     }
 
     $('.config').find('ul').html(configList);
@@ -784,8 +755,14 @@ __webpack_require__(0).ipcRenderer.on('check_connections', function (event, data
 __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
   switch (data.text) {
     case 'Нет новых обновлений':
+    case 'Ошибка при обновлении':
       $('#status-bar').removeClass();
-      $('#status-bar').addClass('ready');
+      $('#status-bar').addClass('ready'); //Auto startup 
+
+      if (apps.length == 1) {
+        Enter(apps[0].app_title);
+      }
+
       break;
 
     case 'Подключение':
@@ -805,17 +782,17 @@ __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
       $('#status-bar').removeClass();
       $('#status-bar').addClass('wait');
       break;
-
-    case 'Ошибка при обновлении':
-      if (data.code !== undefined && data.code == 'net::ERR_NAME_NOT_RESOLVED') {
-        $('#status-bar').removeClass();
-        $('#status-bar').addClass('offline');
-      } else {
-        $('#status-bar').removeClass();
-        $('#status-bar').addClass('notready');
-      }
-
-      break;
+    // case 'Ошибка при обновлении':
+    //   if (data.code !== undefined && data.code == 'net::ERR_NAME_NOT_RESOLVED')
+    //   {
+    //     $('#status-bar').removeClass()
+    //     $('#status-bar').addClass('offline')
+    //   } else
+    //   {
+    //     $('#status-bar').removeClass()
+    //     $('#status-bar').addClass('notready')
+    //   }
+    //   break
   }
 
   console.log(data);
@@ -876,7 +853,7 @@ if(false) {
 /* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(4)(undefined);
+exports = module.exports = __webpack_require__(4)(false);
 // imports
 
 
