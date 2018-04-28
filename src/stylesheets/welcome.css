@@ -62,10 +62,12 @@ html{
 
 
   #menu-button{display: none;}
+  #update-button{display: none;}
   .button{font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: none; padding: 5px 10px;}
   a.button:hover{color: #555; background-color: #ccc}
   .close{position: absolute; left: 20px; top: 20px; color: #aaa;}
   .back{position: absolute; right: 20px; top: 20px; color: #aaa;}
+  .update{position: absolute; right: 20px; top: 20px; color: #129c09; }
   .add{
     color: rgb(79, 177, 110);
     border: 1px solid;
@@ -190,4 +192,164 @@ html{
     -webkit-transform: scale(1.0);
     transform: scale(1.0);
   }
+}
+
+
+
+/* ANIMATION */
+  .loading{   
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background: rgb(233, 255, 249);
+    left: 0;
+    top: 0;
+  }
+.cube-folding {
+  position: absolute;
+  left: 12.5px;
+  top: 37.5px;
+  width: 50px;
+  height: 50px;
+  display: inline-block;
+  font-size: 0;
+}
+.cube-folding span {
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  display: inline-block;
+}
+.cube-folding span::before {
+  content: '';
+  background-color: #f76363;
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 25px;
+  height: 25px;
+  transform-origin: 100% 100%;
+  -moz-animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;
+  -webkit-animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;
+  animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;
+}
+.cube-folding .leaf2 {
+  -moz-transform: translateX(-100%);
+  -ms-transform: translateX(-100%);
+  -webkit-transform: translateX(-100%);
+  transform: translateX(-100%);
+}
+.cube-folding .leaf2::before {
+  -moz-animation-delay: 0.3s;
+  -webkit-animation-delay: 0.3s;
+  animation-delay: 0.3s;
+}
+.cube-folding .leaf3 {
+  -moz-transform: translateX(100%);
+  -ms-transform: translateX(100%);
+  -webkit-transform: translateX(100%);
+  transform: translateX(100%);
+}
+.cube-folding .leaf3::before {
+  -moz-animation-delay: 0.9s;
+  -webkit-animation-delay: 0.9s;
+  animation-delay: 0.9s;
+}
+.cube-folding .leaf4 {
+  -moz-transform: translateY(-100%);
+  -ms-transform: translateY(-100%);
+  -webkit-transform: translateY(-100%);
+  transform: translateY(-100%);
+}
+.cube-folding .leaf4::before {
+  -moz-animation-delay: 0.6s;
+  -webkit-animation-delay: 0.6s;
+  animation-delay: 0.6s;
+}
+.cube-folding .leaf5 {
+  -moz-transform: translateY(100%);
+  -ms-transform: translateY(100%);
+  -webkit-transform: translateY(100%);
+  transform: translateY(100%);
+}
+.cube-folding .leaf5::before {
+  -moz-animation-delay: 1.2s;
+  -webkit-animation-delay: 1.2s;
+  animation-delay: 1.2s;
+}
+
+@-moz-keyframes folding {
+  0%, 10% {
+    transform-origin: 0% 0%;
+    -moz-transform: perspective(140px) rotateX(-180deg);
+    transform: perspective(140px) rotateX(-180deg);
+    opacity: 0;
+  }
+  25%, 75% {
+    -moz-transform: perspective(140px) rotateX(0deg);
+    transform: perspective(140px) rotateX(0deg);
+    opacity: 1;
+  }
+  90%, 100% {
+    transform-origin: 100% 100%;
+    -moz-transform: perspective(140px) rotateX(180deg);
+    transform: perspective(140px) rotateX(180deg);
+    opacity: 0;
+  }
+}
+@-webkit-keyframes folding {
+  0%, 10% {
+    transform-origin: 0% 0%;
+    -webkit-transform: perspective(140px) rotateX(-180deg);
+    transform: perspective(140px) rotateX(-180deg);
+    opacity: 0;
+  }
+  25%, 75% {
+    -webkit-transform: perspective(140px) rotateX(0deg);
+    transform: perspective(140px) rotateX(0deg);
+    opacity: 1;
+  }
+  90%, 100% {
+    transform-origin: 100% 100%;
+    -webkit-transform: perspective(140px) rotateX(180deg);
+    transform: perspective(140px) rotateX(180deg);
+    opacity: 0;
+  }
+}
+@keyframes folding {
+  0%, 10% {
+    transform-origin: 0% 0%;
+    -moz-transform: perspective(140px) rotateX(-180deg);
+    -ms-transform: perspective(140px) rotateX(-180deg);
+    -webkit-transform: perspective(140px) rotateX(-180deg);
+    transform: perspective(140px) rotateX(-180deg);
+    opacity: 0;
+  }
+  25%, 75% {
+    -moz-transform: perspective(140px) rotateX(0deg);
+    -ms-transform: perspective(140px) rotateX(0deg);
+    -webkit-transform: perspective(140px) rotateX(0deg);
+    transform: perspective(140px) rotateX(0deg);
+    opacity: 1;
+  }
+  90%, 100% {
+    transform-origin: 100% 100%;
+    -moz-transform: perspective(140px) rotateX(180deg);
+    -ms-transform: perspective(140px) rotateX(180deg);
+    -webkit-transform: perspective(140px) rotateX(180deg);
+    transform: perspective(140px) rotateX(180deg);
+    opacity: 0;
+  }
+}
+.cube-wrapper {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  margin-top: -50px;
+  margin-left: -50px;
+  width: 100px;
+  height: 100px;
+  text-align: center;
 }

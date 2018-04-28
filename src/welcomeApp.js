@@ -35,6 +35,11 @@ export const ShowConfig = () =>
   })
 }
 
+export const StartUpdate = () =>
+{
+  $('.loading').fadeIn()
+  require('electron').ipcRenderer.send('start-update')
+}
 
 require('electron').ipcRenderer.on('load', function (event, data)
 {
@@ -43,23 +48,18 @@ require('electron').ipcRenderer.on('load', function (event, data)
   {
     let configList = ''
     let welcomeList = ''
+
+    welcomeList += '<a id="enter-button" class="item"  onclick="Enter(\'' + apps[0].app_title + '\')">'
+    welcomeList += '<div class="title">' + apps[0].app_title + '</div>'
+    welcomeList += '<div class="icon policlinic"></div>'
+    welcomeList += '</a>'
+
     for (let app in apps)
     {
       configList += '<li><div class="name">' + apps[app].app_title + '</div>'
       configList += '<b>host:</b> <span>' + apps[app].host + '</span>'
       configList += '<b>port:</b> <span>' + apps[app].port + '</span></li>'
 
-      welcomeList += '<a id="enter-button" onclick="Enter(\'' + apps[app].app_title + '\')" class="item"><div class="title">' + apps[app].app_title + '</div>'
-      switch (apps[app].app_title)
-      {
-        case 'Поликлиника':
-          welcomeList += '<div class="icon policlinic"></div>'
-          break;
-        case 'Травматология':
-          welcomeList += '<div class="icon traumatology"></div>'
-          break;
-      }
-      welcomeList += '<div class="params"><span>' + apps[app].app_url + '</span></div></a>'
     }
 
 
@@ -88,25 +88,40 @@ require('electron').ipcRenderer.on('check_connections', function (event, data)
 // 
 require('electron').ipcRenderer.on('message', function (event, data)
 {
+  console.log('sendStatusToWindow')
+  console.log(data.text)
   switch (data.text)
   {
+    case 'Проверка соединения':
+      //console.log('Проверка соединения')
+      $('.loading').fadeOut()
+      $('.welcome>.col12').html("Нет доступных серверов!")
+      console.log('Проверка соединения')
+      //require('electron').ipcRenderer.send('check-update')
+      break
     case 'Нет новых обновлений':
     case 'Ошибка при обновлении':
       $('#status-bar').removeClass()
       $('#status-bar').addClass('ready')
+        console.log('Нет новых обновлений')
       //Auto startup 
-      if (apps.length == 1 )
+      if (apps.length) //&& apps.length == 1 )
       {
         Enter(apps[0].app_title)
       }
 
       break
-    case 'Подключение':
     case 'Доступны новые обновления':
+      $('#status-bar').removeClass()
+      $('#status-bar').addClass('ready')
+      $('#update-button').show();
+      break
+    case 'Подключение':
     case 'Поиск обновлений...':
     case 'Обновление загружено':
     case 'Загрузка обновлений':
     default:
+      console.log('Загрузка обновлений')
       if (data.text == 'Загрузка обновлений')
       {
         $('.loading-widget').show();
@@ -140,6 +155,8 @@ require('electron').ipcRenderer.on('message', function (event, data)
 $('#exit-button').on('click', () => { Exit() });
 $('#back-button').on('click', () => { CloseConfig() });
 $('#menu-button').on('click', () => { ShowConfig() });
+
+$('#update-button').on('click', () => { StartUpdate() });
 //$('#enter-button').on('click', () => { Exit() });
 
 

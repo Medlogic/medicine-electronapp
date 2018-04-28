@@ -1,10 +1,10 @@
 {
   "name": "development",
 	"debug": true,
-	"fullscreen": true,
-	"window_width": 1100,
-	"window_height": 700,
-	"app_list_version": 2,
+	"fullscreen": false,
+	"window_width": 1400,
+	"window_height": 900,
+	"app_list_version": 1,
 	"server_list": [
 		"http://medicine:80",
 	  "http://192.168.0.201:80",
