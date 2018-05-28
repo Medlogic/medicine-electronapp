@@ -2,7 +2,7 @@ html{
     border: 2px solid #ccc;
     height: calc(100% - 4px);}
   body{height: 100%}
-  body {-webkit-user-select: none; overflow: hidden; margin: 0;  font-family: sans-serif;}
+  body {user-select: none; overflow: hidden; margin: 0;  font-family: sans-serif;}
   
   .config{display: none;}
   .welcome{display: none1;}
@@ -142,22 +142,6 @@ html{
   form{padding-bottom: 25px;}
 
 
-
-  .loading{    
-    position: absolute;
-    width: 100%;
-    height: calc(100% - 50px);
-    background:rgba(255, 255, 255, 0.74);
-    z-index: 10;
-    }
-
-    .spinner {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translateX(-50%) translateY(-50%);
-}
-
 .spinner > div {
   width: 18px;
   height: 18px;
@@ -202,9 +186,17 @@ html{
     width: 100%;
     height: 100%;
     z-index: 10;
-    background: rgb(233, 255, 249);
+    background: rgb(233, 255, 249, 0);
     left: 0;
     top: 0;
+    transition: all 1.0s;
+  }
+  .loading.dark{
+    background: rgb(233, 255, 249);
+    /* background: rgb(85,85,85); */
+  }
+  .loading.light{
+    background: rgb(233, 255, 249);
   }
 .cube-folding {
   position: absolute;

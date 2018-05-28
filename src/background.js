@@ -18,7 +18,6 @@ const http = require("http")
 const ping = require("ping")
 
 //let config = require('./env.json');
-env.app_list=[]
 const storeOptions = {"name": "app_config" }
 const Store = require('electron-store');
 export const store = new Store(storeOptions);
@@ -32,11 +31,12 @@ import createWindow from "./helpers/window";
 // Special module holding environment variables which you declared
 // in config/env_xxx.json file.
 import env from "env";
+env.app_list=[]
 
 import * as welcome from "./welcomeBackground.js"
 let mainWindow
 let printWindow
-
+let haveUpdates = false
 
 const replaceUrls = [
     [/^http(.*)\/application\/lib\/compatibility.js$/, '/application/scripts/compatibility.js'],
@@ -74,6 +74,7 @@ const updateConfig = () => {
 
 
 const createMainWindow = () => {
+  updateConfig()
   mainWindow = null     
 
   let shouldQuit = app.makeSingleInstance(function (commandLine, workingDirectory) {
@@ -88,14 +89,13 @@ const createMainWindow = () => {
     return;
   }
 
-  //const electron = require('electron');
   const {
     width,
     height
   } = screen.getPrimaryDisplay().workAreaSize
-  let w = Math.round((height / 100 * 37) * 0.9);
-  let h = Math.round(height / 100 * 37);
   
+  //
+  // просмотр ком-портов и выбор сканера-штрихкодов
   ScanSerialPort();   
 
   // Create the browser window.
@@ -212,21 +212,144 @@ const createMainWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {  
-
-  updateConfig()
   welcome.createWelcomeWindow(store)
-
-  welcome.welcomeWindow.webContents.on('did-finish-load', () => {     
-    pingServers()
+  welcome.welcomeWindow.webContents.on('did-finish-load', () => {    
+    welcome.checkUpdates()
+    if(env.name == 'development')
+      welcome.welcomeWindow.webContents.send('message', {"text": 'Ошибка при обновлении', "code": 0});
   })
-
 })
 
-// Quit when all windows are closed.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+
+
+ipcMain.on('load-application', (event, args) => {
+  env.selected_app = args
+  //console.log('load-application')
+  createMainWindow()
+});
+
+ipcMain.on('test-connection', (event, args) => {
+  haveUpdates = args
+  //console.log('test-connection')
+  updateConfig()
+  pingServers()
+});
+
+const pingServers = () => {
+  var exec = require('child_process').exec;
+  env.active_server_list = []
+  let count = 0
+  let server_list = !store.has('app_list') ? env.server_list : [store.get('app_list')[0].app_url]
+  //console.log('server_list')
+  //console.log(env.server_list)
+  //console.log('app_list')
+  //console.log(store.has('app_list') ? store.get('app_list') : 'none')
+  
+  asyncLoop(server_list.length, function(loop) {    
+        // log the iteration
+        //console.log(loop.iteration());
+        exec("ping -w 25 -n 1 " + URL.parse(server_list[loop.iteration()]).hostname, (error, stdout, stderr) => {      
+          if(error == null){
+            env.active_server_list.push(server_list[loop.iteration()])
+          }
+          loop.next();
+        })
+    },
+    function(){
+      //console.log('cycle ended')
+      //console.log(env.active_server_list)
+      checkConnections()
+    }
+  )
+}
+
+const checkConnections = () => {
+  env.app_list = []
+  let haveError = true
+  let count = 0
+  //for(let arg in env.active_server_list ){
+    
+  asyncLoop(env.active_server_list.length, function(loop) {    
+    // log the iteration
+    //console.log(loop.iteration());
+    http.get(env.active_server_list[loop.iteration()]+'/api/1/config/', (response) => {
+      let rawData = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => { 
+        rawData += chunk; 
+      });
+
+      response.on('end', () => {
+        try {
+          const parsedData = JSON.parse(rawData);
+          if(parsedData !== undefined && parsedData.APP_TITLE !== undefined){
+            haveError = false
+            env.app_list.push({'app_url': env.active_server_list[loop.iteration()], 'app_title': parsedData.APP_TITLE})
+            store.set('app_list', env.app_list)
+            if(haveUpdates){
+              welcome.updateWelcomeWindow(store)
+            }else{
+              env.selected_app = parsedData.APP_TITLE
+              createMainWindow()
+            }
+            loop.break();
+          }
+        } catch (e) {
+          //console.log('error_2')
+          loop.next();
+        }
+      });
+    }).on('error', (e) => {
+      loop.next();
+      //console.log('error_1')
+    });
+
+    },
+    function(){
+      if(haveError){
+        welcome.welcomeWindow.webContents.send('message', {"text": 'Проверка соединения', "code": 0})
+        if(store.has('app_list'))
+          store.delete('app_list')
+      }
+      //console.log('cycle2 ended')
+    }
+  );
+}
+
+function asyncLoop(iterations, func, callback) {
+  var index = 0;
+  var done = false;
+  var loop = {
+      next: function() {
+          if (done) {
+              return;
+          }
+
+          if (index < iterations) {
+              index++;
+              func(loop);
+
+          } else {
+              done = true;
+              callback();
+          }
+      },
+
+      iteration: function() {
+          return index - 1;
+      },
+
+      break: function() {
+          done = true;
+          callback();
+      }
+  };
+  loop.next();
+  return loop;
+}
+
+ipcMain.on('start-update', (event, args) => {
+  welcome.startUpdate();
 });
 
 
@@ -258,7 +381,7 @@ ipcMain.on('print-content', (event, arg) => {
     printWindow.webContents.send('content', arg)
   }
 
-});
+})
 
 ipcMain.on('print', (event, arg) => {
     let fileName = path.join(os.tmpdir(), 'print' + new Date().getTime() + '.pdf');
@@ -303,88 +426,27 @@ ipcMain.on('print', (event, arg) => {
 
       
     })
-});
+})
 
 ipcMain.on('download', (event, args) => {
     download(BrowserWindow.getFocusedWindow(), env.app_url + args.url, {saveAs: true, openFolderWhenDone: true})
         .then(dl => console.log(dl.getSavePath()))
         .catch(console.error);
-});
+})
 
-ipcMain.on('load-application', (event, args) => {
-  env.selected_app = args;
-  console.log('load-application')
-  updateConfig()
-  createMainWindow();
-});
 
 ipcMain.on('exit-application', (event, args) => {
   app.quit()
   welcome.welcomeWindow = null
   printWindow = null
   mainWindow = null
-});
-
-const pingServers = () => {
-  var exec = require('child_process').exec;
-  env.active_server_list = []
-  let count = 0
-  let server_list = !store.has('app_list') ? env.server_list : [store.get('app_list')[0].app_url]
-  //console.log(server_list)
-  for(let arg in server_list ){    
-    exec("ping -n 1 " + URL.parse(server_list[arg]).hostname, (error, stdout, stderr) => {      
-      count += 1;
-      if(error == null){
-        env.active_server_list.push(server_list[arg])
-        //console.log(server_list[arg] + ' is live')
-      }
-      // else
-      //   console.log(server_list[arg] + ' is dead')
-
-      if(count == server_list.length)
-        checkConnections()
-    });
+})
+// Quit when all windows are closed.
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
   }
-}
-
-const checkConnections = () => {
-  env.app_list = []
-  
-  for(let arg in env.active_server_list ){
-    http.get(env.active_server_list[arg]+'/api/1/config/', (response) => {
-
-      response.setEncoding('utf8');
-      let rawData = '';
-
-      response.on('data', (chunk) => { 
-        rawData += chunk; 
-      });
-
-      response.on('end', () => {
-        try {
-          const parsedData = JSON.parse(rawData);
-          if(parsedData !== undefined && parsedData.APP_TITLE !== undefined){
-            env.app_list.push({'app_url': env.active_server_list[arg], 'app_title': parsedData.APP_TITLE})
-            store.set('app_list', env.app_list)
-            if(env.name == 'development')
-              welcome.welcomeWindow.webContents.send('message', {"text": 'Ошибка при обновлении', "code": 0});
-              //sendStatusToWindow('Ошибка при обновлении', 0);
-            else
-              welcome.checkUpdates();
-          }
-        } catch (e) {
-          console.log('error_2')
-        }
-      });
-    }).on('error', (e) => {
-      console.log('error_1')
-    });
-  }
-}
-
-ipcMain.on('start-update', (event, args) => {
-  welcome.startUpdate();
-});
+})
 
 //
 // просмотр ком-портов и выбор сканера-штрихкодов

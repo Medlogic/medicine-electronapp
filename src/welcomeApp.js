@@ -1,8 +1,6 @@
 import "./stylesheets/welcome.css";
 
 var apps;
-//const ORIENTATION = Enum("NORTH", "SOUTH", "WEST", "EAST")
-
 
 export const Exit = () =>
 {
@@ -11,8 +9,17 @@ export const Exit = () =>
 
 export const Enter = (item) =>
 {
+  console.log(item)
   $('.loading').fadeIn()
+  $('.loading').removeClass('dark')
+  $('.loading').addClass('light')
   require('electron').ipcRenderer.send('load-application', item)
+}
+
+export const TestConnection = (haveUpdates) =>
+{
+  //$('.loading').fadeIn()
+  require('electron').ipcRenderer.send('test-connection', haveUpdates)
 }
 window.Enter = Enter;
 
@@ -20,24 +27,26 @@ export const Loading = () =>
 {
 }
 
-export const CloseConfig = () =>
-{
-  $('.config').fadeOut("fast", () =>
-  {
-    $('.welcome').fadeIn()
-  })
-}
-export const ShowConfig = () =>
-{
-  $('.welcome').fadeOut("fast", () =>
-  {
-    $('.config').fadeIn()
-  })
-}
+// export const CloseConfig = () =>
+// {
+//   $('.config').fadeOut("fast", () =>
+//   {
+//     $('.welcome').fadeIn()
+//   })
+// }
+// export const ShowConfig = () =>
+// {
+//   $('.welcome').fadeOut("fast", () =>
+//   {
+//     $('.config').fadeIn()
+//   })
+// }
 
 export const StartUpdate = () =>
 {
   $('.loading').fadeIn()
+  $('.loading').removeClass('light')
+  $('.loading').addClass('dark')
   require('electron').ipcRenderer.send('start-update')
 }
 
@@ -48,40 +57,34 @@ require('electron').ipcRenderer.on('load', function (event, data)
   {
     let configList = ''
     let welcomeList = ''
-
     welcomeList += '<a id="enter-button" class="item"  onclick="Enter(\'' + apps[0].app_title + '\')">'
     welcomeList += '<div class="title">' + apps[0].app_title + '</div>'
     welcomeList += '<div class="icon policlinic"></div>'
     welcomeList += '</a>'
 
-    for (let app in apps)
-    {
-      configList += '<li><div class="name">' + apps[app].app_title + '</div>'
-      configList += '<b>host:</b> <span>' + apps[app].host + '</span>'
-      configList += '<b>port:</b> <span>' + apps[app].port + '</span></li>'
+    // for (let app in apps)
+    // {
+    //   configList += '<li><div class="name">' + apps[app].app_title + '</div>'
+    //   configList += '<b>host:</b> <span>' + apps[app].host + '</span>'
+    //   configList += '<b>port:</b> <span>' + apps[app].port + '</span></li>'
+    // }
 
-    }
-
-
-    $('.config').find('ul').html(configList)
+    //$('.config').find('ul').html(configList)
     $('.welcome>.col12').html(welcomeList)
-
     $('.loading').fadeOut()
-    CloseConfig()
-
+    //CloseConfig()
   } else
   {
     $('.loading').fadeOut()
     $('.welcome>.col12').html("Нет доступных серверов!")
   }
-
 })
 
-require('electron').ipcRenderer.on('check_connections', function (event, data)
-{
-  $('.loading').fadeIn()
-  $('.welcome>.col12').html("Поиск доступных серверов...<br><br><br><br><br><br><br><p></p>")
-})
+// require('electron').ipcRenderer.on('check_connections', function (event, data)
+// {
+//   $('.loading').fadeIn()
+//   $('.welcome>.col12').html("Поиск доступных серверов...<br><br><br><br><br><br><br><p></p>")
+// })
 
 // ПРОВЕРКА ОБНОВЛЕНИЙ
 // 
@@ -104,17 +107,28 @@ require('electron').ipcRenderer.on('message', function (event, data)
       $('#status-bar').removeClass()
       $('#status-bar').addClass('ready')
         console.log('Нет новых обновлений')
-      //Auto startup 
-      if (apps.length) //&& apps.length == 1 )
-      {
-        Enter(apps[0].app_title)
-      }
-
+        //Auto startup 
+        TestConnection(false)
+      
+        $('.loading').fadeIn()
+        $('.loading').removeClass('light')
+        $('.loading').addClass('dark')
       break
+      case 'Ошибка при подключении':
+        $('.loading').fadeOut()
+        $('#status-bar').removeClass()
+        $('#status-bar').addClass('ready')
+          console.log('Ошибка при подключении')
+        break
     case 'Доступны новые обновления':
+      TestConnection(true)
       $('#status-bar').removeClass()
       $('#status-bar').addClass('ready')
       $('#update-button').show();
+      
+      $('.loading').fadeIn()
+      $('.loading').removeClass('light')
+      $('.loading').addClass('dark')
       break
     case 'Подключение':
     case 'Поиск обновлений...':
@@ -153,8 +167,8 @@ require('electron').ipcRenderer.on('message', function (event, data)
 })
 
 $('#exit-button').on('click', () => { Exit() });
-$('#back-button').on('click', () => { CloseConfig() });
-$('#menu-button').on('click', () => { ShowConfig() });
+//$('#back-button').on('click', () => { CloseConfig() });
+//$('#menu-button').on('click', () => { ShowConfig() });
 
 $('#update-button').on('click', () => { StartUpdate() });
 //$('#enter-button').on('click', () => { Exit() });
