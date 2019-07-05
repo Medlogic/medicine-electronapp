@@ -60,30 +60,320 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 25);
+/******/ 	return __webpack_require__(__webpack_require__.s = 27);
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */
+/******/ ({
+
+/***/ 0:
 /***/ (function(module, exports) {
 
 module.exports = require("electron");
 
 /***/ }),
-/* 1 */
+
+/***/ 1:
 /***/ (function(module, exports) {
 
-module.exports = {"name":"production","debug":false,"fullscreen":true,"window_width":1100,"window_height":700,"app_list_version":2,"server_list":["http://medicine:80","http://192.168.0.201:80","http://192.168.0.203:80","http://192.168.1.200:80","http://192.168.1.165:80","http://192.168.0.18:80","http://192.168.0.200:80","http://192.168.0.202:80","http://192.168.1.201:80","http://192.168.1.202:80"]}
+module.exports = {"name":"production","debug":false,"fullscreen":true,"window_width":1100,"window_height":700,"app_list_version":6,"server_list":["http://127.0.0.1:80"]}
 
 /***/ }),
-/* 2 */
+
+/***/ 2:
 /***/ (function(module, exports) {
 
 module.exports = require("fs-jetpack");
 
 /***/ }),
-/* 3 */,
-/* 4 */
+
+/***/ 27:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.StartUpdate = exports.ChangeUrl = exports.ShowConfig = exports.CloseConfig = exports.Loading = exports.TestConnection = exports.Enter = exports.Exit = void 0;
+
+__webpack_require__(28);
+
+var _electron = __webpack_require__(0);
+
+var _fsJetpack = _interopRequireDefault(__webpack_require__(2));
+
+var _env = _interopRequireDefault(__webpack_require__(1));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var startTimer;
+var ipInput = $('#host').ipInput();
+
+const Exit = () => {
+  __webpack_require__(0).ipcRenderer.send('exit-application');
+};
+
+exports.Exit = Exit;
+
+const Enter = app_url => {
+  clearTimeout(startTimer);
+  $('.progressbar-widget').fadeOut();
+  $('.loading').fadeIn();
+  $('.loading').removeClass('dark');
+  $('.loading').addClass('light');
+
+  __webpack_require__(0).ipcRenderer.send('load-application', app_url);
+};
+
+exports.Enter = Enter;
+
+const TestConnection = haveUpdates => {//$('.loading').fadeIn()
+  //require('electron').ipcRenderer.send('check-connection', '')
+};
+
+exports.TestConnection = TestConnection;
+window.Enter = Enter;
+
+const Loading = () => {};
+
+exports.Loading = Loading;
+
+const CloseConfig = () => {
+  $('.loading').hide();
+  $('.config').fadeOut("fast", () => {
+    $('.welcome').fadeIn();
+  });
+};
+
+exports.CloseConfig = CloseConfig;
+window.CloseConfig = CloseConfig;
+
+const ShowConfig = () => {
+  $('.loading').show();
+  clearTimeout(startTimer);
+  $('.progressbar-widget').fadeOut();
+  $('.welcome').fadeOut("fast", () => {
+    $('.config').fadeIn();
+  });
+};
+
+exports.ShowConfig = ShowConfig;
+window.ShowConfig = ShowConfig;
+
+const ChangeUrl = () => {
+  var portStr = document.getElementById('port').value;
+  var port = portStr > 0 && portStr < 65535 ? portStr : 80;
+  var url = `http://${ipInput.getIp()}:${port}`;
+
+  __webpack_require__(0).ipcRenderer.send('check-connection', url);
+
+  CloseConfig();
+  $('.loading').show();
+};
+
+exports.ChangeUrl = ChangeUrl;
+
+const StartUpdate = () => {
+  $('.progressbar-widget').fadeOut();
+  $('.loading').fadeIn();
+  $('.loading').removeClass('light');
+  $('.loading').addClass('dark');
+
+  __webpack_require__(0).ipcRenderer.send('start-update');
+};
+
+exports.StartUpdate = StartUpdate;
+
+__webpack_require__(0).ipcRenderer.on('load', function (event, data) {
+  var app = data.msg;
+
+  if (app !== undefined) {
+    $('.loading').fadeOut();
+    let welcomeList = `
+		<a id="enter-button" class="item ${app.online ? '' : 'disabled'}"  onclick="Enter('${app.url}')" >
+			<div class="title">${app.title}</div>
+			<div class="icon policlinic"></div>
+			<div class="params">
+				<b>HOST:</b><span>${app.host}</span>
+				<b>PORT:</b><span>${app.port}</span>
+			</div>
+			<div class="overlay"></div>
+		</a>`;
+    $('.welcome>.col12').html(welcomeList);
+    $('.config').find('h3').html(app.title);
+    $('.config').find('#port').val(app.port);
+    ipInput.setIp(app.host);
+  } else {
+    $('.welcome>.col12').html("Нет доступных серверов!");
+  }
+
+  if (app.online) {
+    $('.progressbar-widget').fadeIn();
+    var count = 0;
+    var countInterval = setInterval(function () {
+      $('.progressbar-widget .title').html(`ОТКРЫТИЕ ЧЕРЕЗ ${Math.floor(4 - count / 1000)} СЕК.`);
+      $('.progressbar-widget .bar').css('width', Math.floor(count / 4000 * 100) + '%');
+      count += 100;
+      if (count >= 4000) clearInterval(countInterval);
+    }, 100);
+    startTimer = setTimeout(function () {
+      $('.loading').fadeIn();
+      $('.progressbar-widget').fadeOut();
+
+      __webpack_require__(0).ipcRenderer.send('load-application', app.url);
+    }, 4000);
+  }
+});
+
+__webpack_require__(0).ipcRenderer.on('console', function (event, data) {
+  console.log(data.message);
+}); // ПРОВЕРКА ОБНОВЛЕНИЙ
+// 
+// 
+
+
+__webpack_require__(0).ipcRenderer.on('message', function (event, data) {
+  console.log('sendStatusToWindow');
+  console.log(data.text);
+
+  switch (data.text) {
+    case 'Проверка соединения':
+      //console.log('Проверка соединения')
+      $('.loading').fadeOut();
+      $('.welcome>.col12').html("Нет доступных серверов!");
+      console.log('Проверка соединения'); //require('electron').ipcRenderer.send('check-update')
+
+      break;
+
+    case 'Нет новых обновлений':
+    case 'Ошибка при обновлении':
+      $('#status-bar').removeClass();
+      $('#status-bar').addClass('ready');
+      console.log('Нет новых обновлений'); //Auto startup 
+      //TestConnection(false)
+
+      $('.loading').fadeIn();
+      $('.loading').removeClass('light');
+      $('.loading').addClass('dark');
+      break;
+
+    case 'Ошибка при подключении':
+      $('.loading').fadeOut();
+      $('#status-bar').removeClass();
+      $('#status-bar').addClass('ready');
+      console.log('Ошибка при подключении');
+      break;
+
+    case 'Доступны новые обновления':
+      //TestConnection(true)
+      $('#status-bar').removeClass();
+      $('#status-bar').addClass('ready');
+      $('#update-button').show();
+      $('.loading').fadeIn();
+      $('.loading').removeClass('light');
+      $('.loading').addClass('dark');
+      break;
+
+    case 'Подключение':
+    case 'Поиск обновлений...':
+      break;
+
+    case 'Загрузка обновлений':
+    case 'Обновление загружено':
+      console.log('Загрузка обновлений');
+
+      if (data.text == 'Загрузка обновлений') {
+        $('.loading-widget').show();
+        $('.loading-glow-stick').css('left', data.code + '%');
+        $('.loading-bar').css('width', data.code + '%');
+      } else if (data.text == 'Обновление загружено') {
+        $('.loading-widget').fadeOut("slow");
+      }
+
+      $('#status-bar').removeClass();
+      $('#status-bar').addClass('wait');
+      break;
+
+    default:
+      break;
+  }
+
+  $('#status-message').html(data.text);
+});
+
+$('#exit-button').on('click', () => {
+  Exit();
+});
+$('#back-button').on('click', () => {
+  CloseConfig();
+});
+$('#menu-button').on('click', () => {
+  ShowConfig();
+});
+$('#update-button').on('click', () => {
+  StartUpdate();
+});
+$('#save-url').on('click', () => {
+  ChangeUrl();
+});
+const app = _electron.remote.app;
+
+const appDir = _fsJetpack.default.cwd(app.getAppPath());
+
+const manifest = appDir.read("package.json", "json");
+document.querySelector("#electron-version").innerHTML = manifest.version;
+
+/***/ }),
+
+/***/ 28:
+/***/ (function(module, exports, __webpack_require__) {
+
+// style-loader: Adds some css to the DOM by adding a <style> tag
+
+// load the styles
+var content = __webpack_require__(29);
+if(typeof content === 'string') content = [[module.i, content, '']];
+// Prepare cssTransformation
+var transform;
+
+var options = {"hmr":true}
+options.transform = transform
+// add the styles to the DOM
+var update = __webpack_require__(4)(content, options);
+if(content.locals) module.exports = content.locals;
+// Hot Module Replacement
+if(false) {
+	// When the styles change, update the <style> tags
+	if(!content.locals) {
+		module.hot.accept("!!../../node_modules/css-loader/index.js?url=false!./welcome.css", function() {
+			var newContent = require("!!../../node_modules/css-loader/index.js?url=false!./welcome.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+	}
+	// When the module is disposed, remove the <style> tags
+	module.hot.dispose(function() { update(); });
+}
+
+/***/ }),
+
+/***/ 29:
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(3)(false);
+// imports
+
+
+// module
+exports.push([module.i, "html{\r\n    border: 2px solid #ccc;\r\n    height: calc(100% - 4px);}\r\n  body{height: 100%}\r\n  body {user-select: none; overflow: hidden; margin: 0;  font-family: sans-serif;}\r\n  \r\n  .config{\r\n\t  \tdisplay: none;\r\n\t\tposition: absolute;\r\n\t\ttop: 0px;\r\n\t\tleft: 0px;\r\n\t\twidth: calc(100% - 40px);\r\n\t\theight: calc(100% - 40px);\r\n\t\tpadding: 20px;\r\n\t\tbackground: rgb(255, 255, 255);\r\n\t}\r\n\t.config form a{\r\n\t\tmargin: auto;\r\n\t\tmargin-top: 20px;\r\n\t\twidth: 90px;\r\n\t\tdisplay: block;\r\n\t}\r\n\t.config h3 {\r\n\t\tpadding-top: 20px;\r\n\t  \ttext-align: center;\r\n\t}\r\n\t.config form {\r\n\t\tpadding: 20px;\r\n\t\tborder: 1px solid #e6e6e6;\r\n\t\tborder-radius: 10px;\r\n\t}\r\n\t.config label {\r\n\t\twidth: 100px !important;\r\n\t\ttext-align: right;\r\n\t  \tdisplay: inline-block;\r\n\t}\r\n\t.config .form-group {\r\n\t  \tmargin-top: 10px;\r\n\t}\r\n\t.config input {\r\n\t  \tmargin: 0;\r\n\t}\r\n\t.config .form-group>div {\r\n\t  \tdisplay: inline-block;\r\n\t}\r\n  .welcome{display: none;}\r\n\r\n  #status-bar{text-align: center; position: absolute; left: 0; bottom: 0; height: 30px; width: 100%; \r\n              color: #ccc; z-index: 100; background: #555; transition: height 2.0s;}\r\n  #status-message{top: 50%; width: 100%;  position: absolute;}\r\n  .offline #status-message, .offline .ml-logo, .ready #status-message, .ready .ml-logo{opacity: 0;}\r\n  .wait #status-message, .wait .ml-logo{opacity: 1;}\r\n  .notready #status-message, .notready .ml-logo{opacity: 1;}\r\n\r\n  .status-icon{position: absolute; right: 20px; bottom: 10px; height: 10px; width: 10px; background: #ccc; border-radius: 5px;}\r\n  .ready .status-icon{background-color: #76f11c}\r\n  .wait .status-icon{background-color: #f1c51c}\r\n  .offline .status-icon{background-color: #aaa}\r\n  .notready .status-icon{background-color: #e06969}\r\n\r\n  #status-bar.ready, #status-bar.offline{height: 30px;}\r\n  #status-bar.wait{height: 100%;}\r\n  #status-bar.notready{height: calc(100% - 60px);}\r\n  .version{position: absolute; left: 20px; bottom: 0; line-height: 30px; color: #f0f0f0; font-size: 10px;}\r\n\r\n  .ml-logo{\r\n    width: 100%;\r\n    background: url(./images/logo.png) no-repeat center;\r\n    background-size: contain;\r\n    height: 80px;}\r\n\r\n\t.progressbar-widget {\r\n\t\tdisplay: none;\r\n\t\tposition: absolute;\r\n\t\twidth: 200px;\r\n\t\tbottom: 10px;\r\n\t\tleft: calc(50% - 100px);\r\n\t\theight: 20px;\r\n\t  }\r\n\t\t.progressbar-widget > .title {\r\n\t\t\tfont-size: 10px;\r\n\t\t\tline-height: 20px;\r\n\t\t\theight: 20px;\r\n\t\t\twidth: 200px;\r\n\t\t\toverflow: hidden;\r\n\t\t\t}\r\n\t\t.progressbar-widget > .holder {\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 200px;\r\n\t\t\theight: 4px;\r\n\t\t\tbottom: 0;\r\n\t\t\tbackground: #888;\r\n\t\t\t}\r\n\t\t.progressbar-widget > .holder > .bar {\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 0;\r\n\t\t\theight: 4px;\r\n\t\t\ttop: 0;\r\n\t\t\tbackground: #ccc;\r\n\t\t}\r\n\r\n  .loading-widget {\r\n    display: none;\r\n    width: 200px;\r\n    top: calc(50% + 50px);\r\n    background: #333;\r\n    border: 1px solid #555;\r\n    height: 20px;\r\n    position: absolute;\r\n    left: calc(50% - 100px);\r\n  }\r\n    .loading-bar {\r\n      width: 0;\r\n      top: 0;\r\n      background: #72b761;\r\n      height: 20px;\r\n      position: absolute;\r\n      left: 0;\r\n    }\r\n    .loading-glow-stick {\r\n      left: 0;\r\n      width: 1px;\r\n      top: 0;\r\n      background: #5fea3d;\r\n      height: 20px;\r\n      position: absolute;\r\n      box-shadow: 0 0 7px #1aef3d;\r\n      z-index: 100000;\r\n    }\r\n\r\n\r\n  /* #menu-button{display: none;} */\r\n  #update-button{display: none;}\r\n  .button{font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: none; padding: 5px 10px; color: #777;}\r\n  a.button:hover{color: #555; background-color: #ccc}\r\n  .close{position: absolute; left: 20px; top: 20px; color: #aaa;}\r\n  .back{position: absolute; right: 20px; top: 20px; color: #aaa;}\r\n  .update{position: absolute; right: 20px; bottom: 40px; color: #129c09; }\r\n  .add{\r\n    color: rgb(79, 177, 110);\r\n    border: 1px solid;\r\n    border-color: rgba(106, 144, 102, 0.48);\r\n    }\r\n\r\n  input{font-size: 14px; padding: 5px 10px; margin: 10px;}\r\n  .col6{width: 50%; float: left; margin-top: 50px;}\r\n\r\n  .center{text-align: center;}\r\n\r\n  .vertical-line{ position: absolute; width: 1px; height: 100%; left: 50%; background: #ddd}\r\n  \r\n  .welcome{\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 100%;\r\n  }\r\n  .welcome .col12{    width: 530px; text-align: center;}\r\n\r\n  .welcome a.item {\r\n    position: relative;\r\n\twidth: 90%;\r\n    height: 130px;\r\n    outline: 1px solid #eee;\r\n    margin: 10px;\r\n    display: inline-flex;\r\n    padding: 10px;\r\n    }\r\n\r\n\t.welcome a.item.disabled {\r\n\t\tpointer-events: none;\r\n\t\tcursor: default;\r\n\t\t}\r\n\t\t.welcome .item>.overlay {\r\n\t\t\tdisplay: none;\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 100%;\r\n\t\t\theight: 100%;\r\n\t\t\ttop: 0;\r\n\t\t\tleft: 0;\r\n\t\t\tbackground: #eeeeee77;\r\n\t\t}\r\n\t\t.welcome .item.disabled > .overlay {\r\n\t\t\tdisplay: block;\r\n\t\t}\r\n\r\n  .welcome a.item:hover {\r\n    cursor: pointer;\r\n    background: #fafafa;\r\n    }\r\n  .welcome a>.title{text-align: center; width: 100%; text-transform: uppercase; color: #646464;}\r\n  .welcome a.item>.icon{\r\n    position: absolute;\r\n    width: 75px;\r\n    height: 75px;\r\n    left: 50%;\r\n    top: 50%;\r\n    transform: translateX(-50%) translateY(-50%);\r\n  }\r\n  .welcome a.item>.params{\r\n    position: absolute;\r\n\tbottom: 0;\r\n\tright:0;\r\n\tfont-size: 70%;\r\n   \tcolor: #555;\r\n  }\r\n  .welcome a.item>.params > b{\r\n\tmargin-left: 10px;\r\n  \tcolor: #999;\r\n  }\r\n  .welcome a.item>.params > span{\r\n\tmargin-left: 5px;\r\n  }\r\n\r\n  .icon.policlinic{\r\n    background: url('./images/policlinic.png'); \r\n    background-size: cover;\r\n    background-repeat: no-repeat;}\r\n  .icon.traumatology{\r\n    background: url('./images/traumatology.png');  \r\n    background-size: cover;\r\n    background-repeat: no-repeat;}\r\n\r\n  .welcome a>.params{\r\n    position: absolute;\r\n    bottom: 5px;\r\n    text-align: center;\r\n    font-size: 10px;\r\n    width: 100%;\r\n    left: 0;\r\n    color: #b0b0b0 !important;\r\n  }\r\n  .welcome a span{margin-right: 5px; }\r\n\r\n  .config ul>li{list-style:  square; margin-bottom: 15px;}\r\n  .config li>span,.config li>b{\r\n    font-size: 13px;\r\n    color: #777; }\r\n  .config li>span{margin-right: 15px; }\r\n  \r\n  form{padding-bottom: 25px;}\r\n\r\n\r\n.spinner > div {\r\n  width: 18px;\r\n  height: 18px;\r\n  background-color: #e33;\r\n\r\n  border-radius: 100%;\r\n  display: inline-block;\r\n  -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;\r\n  animation: sk-bouncedelay 1.4s infinite ease-in-out both;\r\n}\r\n\r\n.spinner .bounce1 {\r\n  -webkit-animation-delay: -0.32s;\r\n  animation-delay: -0.32s;\r\n}\r\n\r\n.spinner .bounce2 {\r\n  -webkit-animation-delay: -0.16s;\r\n  animation-delay: -0.16s;\r\n}\r\n\r\n@-webkit-keyframes sk-bouncedelay {\r\n  0%, 80%, 100% { -webkit-transform: scale(0) }\r\n  40% { -webkit-transform: scale(1.0) }\r\n}\r\n\r\n@keyframes sk-bouncedelay {\r\n  0%, 80%, 100% { \r\n    -webkit-transform: scale(0);\r\n    transform: scale(0);\r\n  } 40% { \r\n    -webkit-transform: scale(1.0);\r\n    transform: scale(1.0);\r\n  }\r\n}\r\n\r\n\r\n\r\n/* ANIMATION */\r\n  .loading{   \r\n\t/* display: none !important; */\r\n    /* position: absolute; */\r\n    width: 100%;\r\n    height: 100%;\r\n    z-index: 10;\r\n    background: rgb(233, 255, 249, 0);\r\n    left: 0;\r\n    top: 0;\r\n    transition: all 1.0s;\r\n  }\r\n  .loading.dark{\r\n    background: rgb(233, 255, 249);\r\n    /* background: rgb(85,85,85); */\r\n  }\r\n  .loading.light{\r\n    background: rgb(233, 255, 249);\r\n  }\r\n.cube-folding {\r\n  position: absolute;\r\n  left: 12.5px;\r\n  top: 37.5px;\r\n  width: 50px;\r\n  height: 50px;\r\n  display: inline-block;\r\n  font-size: 0;\r\n}\r\n.cube-folding span {\r\n  position: absolute;\r\n  width: 25px;\r\n  height: 25px;\r\n  display: inline-block;\r\n}\r\n.cube-folding span::before {\r\n  content: '';\r\n  background-color: #f76363;\r\n  position: absolute;\r\n  left: 0;\r\n  top: 0;\r\n  display: block;\r\n  width: 25px;\r\n  height: 25px;\r\n  transform-origin: 100% 100%;\r\n  -moz-animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n  -webkit-animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n  animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n}\r\n.cube-folding .leaf2 {\r\n  -moz-transform: translateX(-100%);\r\n  -ms-transform: translateX(-100%);\r\n  -webkit-transform: translateX(-100%);\r\n  transform: translateX(-100%);\r\n}\r\n.cube-folding .leaf2::before {\r\n  -moz-animation-delay: 0.3s;\r\n  -webkit-animation-delay: 0.3s;\r\n  animation-delay: 0.3s;\r\n}\r\n.cube-folding .leaf3 {\r\n  -moz-transform: translateX(100%);\r\n  -ms-transform: translateX(100%);\r\n  -webkit-transform: translateX(100%);\r\n  transform: translateX(100%);\r\n}\r\n.cube-folding .leaf3::before {\r\n  -moz-animation-delay: 0.9s;\r\n  -webkit-animation-delay: 0.9s;\r\n  animation-delay: 0.9s;\r\n}\r\n.cube-folding .leaf4 {\r\n  -moz-transform: translateY(-100%);\r\n  -ms-transform: translateY(-100%);\r\n  -webkit-transform: translateY(-100%);\r\n  transform: translateY(-100%);\r\n}\r\n.cube-folding .leaf4::before {\r\n  -moz-animation-delay: 0.6s;\r\n  -webkit-animation-delay: 0.6s;\r\n  animation-delay: 0.6s;\r\n}\r\n.cube-folding .leaf5 {\r\n  -moz-transform: translateY(100%);\r\n  -ms-transform: translateY(100%);\r\n  -webkit-transform: translateY(100%);\r\n  transform: translateY(100%);\r\n}\r\n.cube-folding .leaf5::before {\r\n  -moz-animation-delay: 1.2s;\r\n  -webkit-animation-delay: 1.2s;\r\n  animation-delay: 1.2s;\r\n}\r\n\r\n@-moz-keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -moz-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -moz-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -moz-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n@-webkit-keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -webkit-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -webkit-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -webkit-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n@keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -moz-transform: perspective(140px) rotateX(-180deg);\r\n    -ms-transform: perspective(140px) rotateX(-180deg);\r\n    -webkit-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -moz-transform: perspective(140px) rotateX(0deg);\r\n    -ms-transform: perspective(140px) rotateX(0deg);\r\n    -webkit-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -moz-transform: perspective(140px) rotateX(180deg);\r\n    -ms-transform: perspective(140px) rotateX(180deg);\r\n    -webkit-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n.cube-wrapper {\r\n  position: fixed;\r\n  left: 50%;\r\n  top: 50%;\r\n  margin-top: -50px;\r\n  margin-left: -50px;\r\n  width: 100px;\r\n  height: 100px;\r\n  text-align: center;\r\n}\r\n\r\n.ip-input-container > input {padding: 0;}", ""]);
+
+// exports
+
+
+/***/ }),
+
+/***/ 3:
 /***/ (function(module, exports) {
 
 /*
@@ -165,7 +455,8 @@ function toComment(sourceMap) {
 
 
 /***/ }),
-/* 5 */
+
+/***/ 4:
 /***/ (function(module, exports, __webpack_require__) {
 
 /*
@@ -221,7 +512,7 @@ var singleton = null;
 var	singletonCounter = 0;
 var	stylesInsertedAtTop = [];
 
-var	fixUrls = __webpack_require__(6);
+var	fixUrls = __webpack_require__(5);
 
 module.exports = function(list, options) {
 	if (typeof DEBUG !== "undefined" && DEBUG) {
@@ -537,7 +828,8 @@ function updateLink (link, options, obj) {
 
 
 /***/ }),
-/* 6 */
+
+/***/ 5:
 /***/ (function(module, exports) {
 
 
@@ -631,274 +923,7 @@ module.exports = function (css) {
 };
 
 
-/***/ }),
-/* 7 */,
-/* 8 */,
-/* 9 */,
-/* 10 */,
-/* 11 */,
-/* 12 */,
-/* 13 */,
-/* 14 */,
-/* 15 */,
-/* 16 */,
-/* 17 */,
-/* 18 */,
-/* 19 */,
-/* 20 */,
-/* 21 */,
-/* 22 */,
-/* 23 */,
-/* 24 */,
-/* 25 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.StartUpdate = exports.Loading = exports.TestConnection = exports.Enter = exports.Exit = void 0;
-
-__webpack_require__(26);
-
-var _electron = __webpack_require__(0);
-
-var _fsJetpack = _interopRequireDefault(__webpack_require__(2));
-
-var _env = _interopRequireDefault(__webpack_require__(1));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var apps;
-
-const Exit = () => {
-  __webpack_require__(0).ipcRenderer.send('exit-application');
-};
-
-exports.Exit = Exit;
-
-const Enter = item => {
-  console.log(item);
-  $('.loading').fadeIn();
-  $('.loading').removeClass('dark');
-  $('.loading').addClass('light');
-
-  __webpack_require__(0).ipcRenderer.send('load-application', item);
-};
-
-exports.Enter = Enter;
-
-const TestConnection = haveUpdates => {
-  //$('.loading').fadeIn()
-  __webpack_require__(0).ipcRenderer.send('test-connection', haveUpdates);
-};
-
-exports.TestConnection = TestConnection;
-window.Enter = Enter;
-
-const Loading = () => {}; // export const CloseConfig = () =>
-// {
-//   $('.config').fadeOut("fast", () =>
-//   {
-//     $('.welcome').fadeIn()
-//   })
-// }
-// export const ShowConfig = () =>
-// {
-//   $('.welcome').fadeOut("fast", () =>
-//   {
-//     $('.config').fadeIn()
-//   })
-// }
-
-
-exports.Loading = Loading;
-
-const StartUpdate = () => {
-  $('.loading').fadeIn();
-  $('.loading').removeClass('light');
-  $('.loading').addClass('dark');
-
-  __webpack_require__(0).ipcRenderer.send('start-update');
-};
-
-exports.StartUpdate = StartUpdate;
-
-__webpack_require__(0).ipcRenderer.on('load', function (event, data) {
-  apps = data.msg;
-
-  if (apps !== undefined && apps.length > 0) {
-    let configList = '';
-    let welcomeList = '';
-    welcomeList += '<a id="enter-button" class="item"  onclick="Enter(\'' + apps[0].app_title + '\')">';
-    welcomeList += '<div class="title">' + apps[0].app_title + '</div>';
-    welcomeList += '<div class="icon policlinic"></div>';
-    welcomeList += '</a>'; // for (let app in apps)
-    // {
-    //   configList += '<li><div class="name">' + apps[app].app_title + '</div>'
-    //   configList += '<b>host:</b> <span>' + apps[app].host + '</span>'
-    //   configList += '<b>port:</b> <span>' + apps[app].port + '</span></li>'
-    // }
-    //$('.config').find('ul').html(configList)
-
-    $('.welcome>.col12').html(welcomeList);
-    $('.loading').fadeOut(); //CloseConfig()
-  } else {
-    $('.loading').fadeOut();
-    $('.welcome>.col12').html("Нет доступных серверов!");
-  }
-}); // require('electron').ipcRenderer.on('check_connections', function (event, data)
-// {
-//   $('.loading').fadeIn()
-//   $('.welcome>.col12').html("Поиск доступных серверов...<br><br><br><br><br><br><br><p></p>")
-// })
-// ПРОВЕРКА ОБНОВЛЕНИЙ
-// 
-// 
-
-
-__webpack_require__(0).ipcRenderer.on('message', function (event, data) {
-  console.log('sendStatusToWindow');
-  console.log(data.text);
-
-  switch (data.text) {
-    case 'Проверка соединения':
-      //console.log('Проверка соединения')
-      $('.loading').fadeOut();
-      $('.welcome>.col12').html("Нет доступных серверов!");
-      console.log('Проверка соединения'); //require('electron').ipcRenderer.send('check-update')
-
-      break;
-
-    case 'Нет новых обновлений':
-    case 'Ошибка при обновлении':
-      $('#status-bar').removeClass();
-      $('#status-bar').addClass('ready');
-      console.log('Нет новых обновлений'); //Auto startup 
-
-      TestConnection(false);
-      $('.loading').fadeIn();
-      $('.loading').removeClass('light');
-      $('.loading').addClass('dark');
-      break;
-
-    case 'Ошибка при подключении':
-      $('.loading').fadeOut();
-      $('#status-bar').removeClass();
-      $('#status-bar').addClass('ready');
-      console.log('Ошибка при подключении');
-      break;
-
-    case 'Доступны новые обновления':
-      TestConnection(true);
-      $('#status-bar').removeClass();
-      $('#status-bar').addClass('ready');
-      $('#update-button').show();
-      $('.loading').fadeIn();
-      $('.loading').removeClass('light');
-      $('.loading').addClass('dark');
-      break;
-
-    case 'Подключение':
-    case 'Поиск обновлений...':
-    case 'Обновление загружено':
-    case 'Загрузка обновлений':
-    default:
-      console.log('Загрузка обновлений');
-
-      if (data.text == 'Загрузка обновлений') {
-        $('.loading-widget').show();
-        $('.loading-glow-stick').css('left', data.code + '%');
-        $('.loading-bar').css('width', data.code + '%');
-      } else if (data.text == 'Обновление загружено') {
-        $('.loading-widget').fadeOut("slow");
-      }
-
-      $('#status-bar').removeClass();
-      $('#status-bar').addClass('wait');
-      break;
-    // case 'Ошибка при обновлении':
-    //   if (data.code !== undefined && data.code == 'net::ERR_NAME_NOT_RESOLVED')
-    //   {
-    //     $('#status-bar').removeClass()
-    //     $('#status-bar').addClass('offline')
-    //   } else
-    //   {
-    //     $('#status-bar').removeClass()
-    //     $('#status-bar').addClass('notready')
-    //   }
-    //   break
-  }
-
-  console.log(data);
-  $('#status-message').html(data.text); //console.log(data)    
-});
-
-$('#exit-button').on('click', () => {
-  Exit();
-}); //$('#back-button').on('click', () => { CloseConfig() });
-//$('#menu-button').on('click', () => { ShowConfig() });
-
-$('#update-button').on('click', () => {
-  StartUpdate();
-}); //$('#enter-button').on('click', () => { Exit() });
-
-const app = _electron.remote.app;
-
-const appDir = _fsJetpack.default.cwd(app.getAppPath());
-
-const manifest = appDir.read("package.json", "json"); //console.log(manifest)
-//console.log(process.versions)
-
-document.querySelector("#electron-version").innerHTML = manifest.version;
-
-/***/ }),
-/* 26 */
-/***/ (function(module, exports, __webpack_require__) {
-
-// style-loader: Adds some css to the DOM by adding a <style> tag
-
-// load the styles
-var content = __webpack_require__(27);
-if(typeof content === 'string') content = [[module.i, content, '']];
-// Prepare cssTransformation
-var transform;
-
-var options = {"hmr":true}
-options.transform = transform
-// add the styles to the DOM
-var update = __webpack_require__(5)(content, options);
-if(content.locals) module.exports = content.locals;
-// Hot Module Replacement
-if(false) {
-	// When the styles change, update the <style> tags
-	if(!content.locals) {
-		module.hot.accept("!!../../node_modules/css-loader/index.js?url=false!./welcome.css", function() {
-			var newContent = require("!!../../node_modules/css-loader/index.js?url=false!./welcome.css");
-			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
-			update(newContent);
-		});
-	}
-	// When the module is disposed, remove the <style> tags
-	module.hot.dispose(function() { update(); });
-}
-
-/***/ }),
-/* 27 */
-/***/ (function(module, exports, __webpack_require__) {
-
-exports = module.exports = __webpack_require__(4)(false);
-// imports
-
-
-// module
-exports.push([module.i, "html{\r\n    border: 2px solid #ccc;\r\n    height: calc(100% - 4px);}\r\n  body{height: 100%}\r\n  body {user-select: none; overflow: hidden; margin: 0;  font-family: sans-serif;}\r\n  \r\n  .config{display: none;}\r\n  .welcome{display: none1;}\r\n\r\n  #status-bar{text-align: center; position: absolute; left: 0; bottom: 0; height: 30px; width: 100%; \r\n              color: #ccc; z-index: 100; background: #555; transition: height 2.0s;}\r\n  #status-message{top: 50%; width: 100%;  position: absolute;}\r\n  .offline #status-message, .offline .ml-logo, .ready #status-message, .ready .ml-logo{opacity: 0;}\r\n  .wait #status-message, .wait .ml-logo{opacity: 1;}\r\n  .notready #status-message, .notready .ml-logo{opacity: 1;}\r\n\r\n  .status-icon{position: absolute; right: 20px; bottom: 10px; height: 10px; width: 10px; background: #ccc; border-radius: 5px;}\r\n  .ready .status-icon{background-color: #76f11c}\r\n  .wait .status-icon{background-color: #f1c51c}\r\n  .offline .status-icon{background-color: #aaa}\r\n  .notready .status-icon{background-color: #e06969}\r\n\r\n  #status-bar.ready, #status-bar.offline{height: 30px;}\r\n  #status-bar.wait{height: 100%;}\r\n  #status-bar.notready{height: calc(100% - 60px);}\r\n  .version{position: absolute; left: 20px; bottom: 0; line-height: 30px; color: #f0f0f0; font-size: 10px;}\r\n\r\n  .ml-logo{\r\n    width: 100%;\r\n    background: url(./images/logo.png) no-repeat center;\r\n    background-size: contain;\r\n    height: 80px;}\r\n\r\n  .loading-widget {\r\n    display: none;\r\n    width: 200px;\r\n    top: calc(50% + 50px);\r\n    background: #333;\r\n    border: 1px solid #555;\r\n    height: 20px;\r\n    position: absolute;\r\n    left: calc(50% - 100px);\r\n  }\r\n    .loading-bar {\r\n      width: 0;\r\n      top: 0;\r\n      background: #72b761;\r\n      height: 20px;\r\n      position: absolute;\r\n      left: 0;\r\n    }\r\n    .loading-glow-stick {\r\n      left: 0;\r\n      width: 1px;\r\n      top: 0;\r\n      background: #5fea3d;\r\n      height: 20px;\r\n      position: absolute;\r\n      box-shadow: 0 0 7px #1aef3d;\r\n      z-index: 100000;\r\n    }\r\n\r\n\r\n  #menu-button{display: none;}\r\n  #update-button{display: none;}\r\n  .button{font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: none; padding: 5px 10px;}\r\n  a.button:hover{color: #555; background-color: #ccc}\r\n  .close{position: absolute; left: 20px; top: 20px; color: #aaa;}\r\n  .back{position: absolute; right: 20px; top: 20px; color: #aaa;}\r\n  .update{position: absolute; right: 20px; top: 20px; color: #129c09; }\r\n  .add{\r\n    color: rgb(79, 177, 110);\r\n    border: 1px solid;\r\n    border-color: rgba(106, 144, 102, 0.48);\r\n    }\r\n\r\n  input{font-size: 14px; padding: 5px 10px; margin: 10px;}\r\n  .col6{width: 50%; float: left; margin-top: 50px;}\r\n\r\n  .center{text-align: center;}\r\n\r\n  .vertical-line{ position: absolute; width: 1px; height: 100%; left: 50%; background: #ddd}\r\n  \r\n  .welcome{\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 100%;\r\n  }\r\n  .welcome .col12{    width: 530px; text-align: center;}\r\n\r\n  .welcome a.item {\r\n    position: relative;\r\n    width: 136px;\r\n    height: 122px;\r\n    outline: 1px solid #eee;\r\n    margin: 10px;\r\n    display: inline-flex;\r\n    padding: 10px;\r\n    }\r\n  .welcome a.item:hover {\r\n    cursor: pointer;\r\n    background: #fafafa;\r\n    box-shadow: 0 0 20px rgba(255, 192, 192, 0.5);\r\n    }\r\n  .welcome a>.title{text-align: center; width: 100%; text-transform: uppercase; color: #646464;}\r\n  .welcome a.item>.icon{\r\n    position: absolute;\r\n    width: 75px;\r\n    height: 75px;\r\n    left: 50%;\r\n    top: 50%;\r\n    transform: translateX(-50%) translateY(-50%);\r\n  }\r\n\r\n  .icon.policlinic{\r\n    background: url('./images/policlinic.png'); \r\n    background-size: cover;\r\n    background-repeat: no-repeat;}\r\n  .icon.traumatology{\r\n    background: url('./images/traumatology.png');  \r\n    background-size: cover;\r\n    background-repeat: no-repeat;}\r\n\r\n  .welcome a>.params{\r\n    position: absolute;\r\n    bottom: 5px;\r\n    text-align: center;\r\n    font-size: 10px;\r\n    width: 100%;\r\n    left: 0;\r\n    color: #b0b0b0 !important;\r\n  }\r\n  .welcome a span{margin-right: 5px; }\r\n\r\n  .config ul>li{list-style:  square; margin-bottom: 15px;}\r\n  .config li>span,.config li>b{\r\n    font-size: 13px;\r\n    color: #777; }\r\n  .config li>span{margin-right: 15px; }\r\n  \r\n  form{padding-bottom: 25px;}\r\n\r\n\r\n.spinner > div {\r\n  width: 18px;\r\n  height: 18px;\r\n  background-color: #e33;\r\n\r\n  border-radius: 100%;\r\n  display: inline-block;\r\n  -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;\r\n  animation: sk-bouncedelay 1.4s infinite ease-in-out both;\r\n}\r\n\r\n.spinner .bounce1 {\r\n  -webkit-animation-delay: -0.32s;\r\n  animation-delay: -0.32s;\r\n}\r\n\r\n.spinner .bounce2 {\r\n  -webkit-animation-delay: -0.16s;\r\n  animation-delay: -0.16s;\r\n}\r\n\r\n@-webkit-keyframes sk-bouncedelay {\r\n  0%, 80%, 100% { -webkit-transform: scale(0) }\r\n  40% { -webkit-transform: scale(1.0) }\r\n}\r\n\r\n@keyframes sk-bouncedelay {\r\n  0%, 80%, 100% { \r\n    -webkit-transform: scale(0);\r\n    transform: scale(0);\r\n  } 40% { \r\n    -webkit-transform: scale(1.0);\r\n    transform: scale(1.0);\r\n  }\r\n}\r\n\r\n\r\n\r\n/* ANIMATION */\r\n  .loading{   \r\n    position: absolute;\r\n    width: 100%;\r\n    height: 100%;\r\n    z-index: 10;\r\n    background: rgb(233, 255, 249, 0);\r\n    left: 0;\r\n    top: 0;\r\n    transition: all 1.0s;\r\n  }\r\n  .loading.dark{\r\n    background: rgb(233, 255, 249);\r\n    /* background: rgb(85,85,85); */\r\n  }\r\n  .loading.light{\r\n    background: rgb(233, 255, 249);\r\n  }\r\n.cube-folding {\r\n  position: absolute;\r\n  left: 12.5px;\r\n  top: 37.5px;\r\n  width: 50px;\r\n  height: 50px;\r\n  display: inline-block;\r\n  font-size: 0;\r\n}\r\n.cube-folding span {\r\n  position: absolute;\r\n  width: 25px;\r\n  height: 25px;\r\n  display: inline-block;\r\n}\r\n.cube-folding span::before {\r\n  content: '';\r\n  background-color: #f76363;\r\n  position: absolute;\r\n  left: 0;\r\n  top: 0;\r\n  display: block;\r\n  width: 25px;\r\n  height: 25px;\r\n  transform-origin: 100% 100%;\r\n  -moz-animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n  -webkit-animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n  animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n}\r\n.cube-folding .leaf2 {\r\n  -moz-transform: translateX(-100%);\r\n  -ms-transform: translateX(-100%);\r\n  -webkit-transform: translateX(-100%);\r\n  transform: translateX(-100%);\r\n}\r\n.cube-folding .leaf2::before {\r\n  -moz-animation-delay: 0.3s;\r\n  -webkit-animation-delay: 0.3s;\r\n  animation-delay: 0.3s;\r\n}\r\n.cube-folding .leaf3 {\r\n  -moz-transform: translateX(100%);\r\n  -ms-transform: translateX(100%);\r\n  -webkit-transform: translateX(100%);\r\n  transform: translateX(100%);\r\n}\r\n.cube-folding .leaf3::before {\r\n  -moz-animation-delay: 0.9s;\r\n  -webkit-animation-delay: 0.9s;\r\n  animation-delay: 0.9s;\r\n}\r\n.cube-folding .leaf4 {\r\n  -moz-transform: translateY(-100%);\r\n  -ms-transform: translateY(-100%);\r\n  -webkit-transform: translateY(-100%);\r\n  transform: translateY(-100%);\r\n}\r\n.cube-folding .leaf4::before {\r\n  -moz-animation-delay: 0.6s;\r\n  -webkit-animation-delay: 0.6s;\r\n  animation-delay: 0.6s;\r\n}\r\n.cube-folding .leaf5 {\r\n  -moz-transform: translateY(100%);\r\n  -ms-transform: translateY(100%);\r\n  -webkit-transform: translateY(100%);\r\n  transform: translateY(100%);\r\n}\r\n.cube-folding .leaf5::before {\r\n  -moz-animation-delay: 1.2s;\r\n  -webkit-animation-delay: 1.2s;\r\n  animation-delay: 1.2s;\r\n}\r\n\r\n@-moz-keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -moz-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -moz-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -moz-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n@-webkit-keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -webkit-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -webkit-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -webkit-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n@keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -moz-transform: perspective(140px) rotateX(-180deg);\r\n    -ms-transform: perspective(140px) rotateX(-180deg);\r\n    -webkit-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -moz-transform: perspective(140px) rotateX(0deg);\r\n    -ms-transform: perspective(140px) rotateX(0deg);\r\n    -webkit-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -moz-transform: perspective(140px) rotateX(180deg);\r\n    -ms-transform: perspective(140px) rotateX(180deg);\r\n    -webkit-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n.cube-wrapper {\r\n  position: fixed;\r\n  left: 50%;\r\n  top: 50%;\r\n  margin-top: -50px;\r\n  margin-left: -50px;\r\n  width: 100px;\r\n  height: 100px;\r\n  text-align: center;\r\n}\r\n", ""]);
-
-// exports
-
-
 /***/ })
-/******/ ]);
+
+/******/ });
 //# sourceMappingURL=welcomeapp.js.map

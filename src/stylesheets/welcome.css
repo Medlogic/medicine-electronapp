@@ -4,8 +4,46 @@ html{
   body{height: 100%}
   body {user-select: none; overflow: hidden; margin: 0;  font-family: sans-serif;}
   
-  .config{display: none;}
-  .welcome{display: none1;}
+  .config{
+	  	display: none;
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		width: calc(100% - 40px);
+		height: calc(100% - 40px);
+		padding: 20px;
+		background: rgb(255, 255, 255);
+	}
+	.config form a{
+		margin: auto;
+		margin-top: 20px;
+		width: 90px;
+		display: block;
+	}
+	.config h3 {
+		padding-top: 20px;
+	  	text-align: center;
+	}
+	.config form {
+		padding: 20px;
+		border: 1px solid #e6e6e6;
+		border-radius: 10px;
+	}
+	.config label {
+		width: 100px !important;
+		text-align: right;
+	  	display: inline-block;
+	}
+	.config .form-group {
+	  	margin-top: 10px;
+	}
+	.config input {
+	  	margin: 0;
+	}
+	.config .form-group>div {
+	  	display: inline-block;
+	}
+  .welcome{display: none;}
 
   #status-bar{text-align: center; position: absolute; left: 0; bottom: 0; height: 30px; width: 100%; 
               color: #ccc; z-index: 100; background: #555; transition: height 2.0s;}
@@ -30,6 +68,36 @@ html{
     background: url(./images/logo.png) no-repeat center;
     background-size: contain;
     height: 80px;}
+
+	.progressbar-widget {
+		display: none;
+		position: absolute;
+		width: 200px;
+		bottom: 10px;
+		left: calc(50% - 100px);
+		height: 20px;
+	  }
+		.progressbar-widget > .title {
+			font-size: 10px;
+			line-height: 20px;
+			height: 20px;
+			width: 200px;
+			overflow: hidden;
+			}
+		.progressbar-widget > .holder {
+			position: absolute;
+			width: 200px;
+			height: 4px;
+			bottom: 0;
+			background: #888;
+			}
+		.progressbar-widget > .holder > .bar {
+			position: absolute;
+			width: 0;
+			height: 4px;
+			top: 0;
+			background: #ccc;
+		}
 
   .loading-widget {
     display: none;
@@ -61,13 +129,13 @@ html{
     }
 
 
-  #menu-button{display: none;}
+  /* #menu-button{display: none;} */
   #update-button{display: none;}
-  .button{font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: none; padding: 5px 10px;}
+  .button{font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: none; padding: 5px 10px; color: #777;}
   a.button:hover{color: #555; background-color: #ccc}
   .close{position: absolute; left: 20px; top: 20px; color: #aaa;}
   .back{position: absolute; right: 20px; top: 20px; color: #aaa;}
-  .update{position: absolute; right: 20px; top: 20px; color: #129c09; }
+  .update{position: absolute; right: 20px; bottom: 40px; color: #129c09; }
   .add{
     color: rgb(79, 177, 110);
     border: 1px solid;
@@ -91,17 +159,34 @@ html{
 
   .welcome a.item {
     position: relative;
-    width: 136px;
-    height: 122px;
+	width: 90%;
+    height: 130px;
     outline: 1px solid #eee;
     margin: 10px;
     display: inline-flex;
     padding: 10px;
     }
+
+	.welcome a.item.disabled {
+		pointer-events: none;
+		cursor: default;
+		}
+		.welcome .item>.overlay {
+			display: none;
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			top: 0;
+			left: 0;
+			background: #eeeeee77;
+		}
+		.welcome .item.disabled > .overlay {
+			display: block;
+		}
+
   .welcome a.item:hover {
     cursor: pointer;
     background: #fafafa;
-    box-shadow: 0 0 20px rgba(255, 192, 192, 0.5);
     }
   .welcome a>.title{text-align: center; width: 100%; text-transform: uppercase; color: #646464;}
   .welcome a.item>.icon{
@@ -111,6 +196,20 @@ html{
     left: 50%;
     top: 50%;
     transform: translateX(-50%) translateY(-50%);
+  }
+  .welcome a.item>.params{
+    position: absolute;
+	bottom: 0;
+	right:0;
+	font-size: 70%;
+   	color: #555;
+  }
+  .welcome a.item>.params > b{
+	margin-left: 10px;
+  	color: #999;
+  }
+  .welcome a.item>.params > span{
+	margin-left: 5px;
   }
 
   .icon.policlinic{
@@ -182,7 +281,8 @@ html{
 
 /* ANIMATION */
   .loading{   
-    position: absolute;
+	/* display: none !important; */
+    /* position: absolute; */
     width: 100%;
     height: 100%;
     z-index: 10;
@@ -345,3 +445,5 @@ html{
   height: 100px;
   text-align: center;
 }
+
+.ip-input-container > input {padding: 0;}

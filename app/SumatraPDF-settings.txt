@@ -56,9 +56,9 @@ CheckForUpdates = true
 RememberOpenedFiles = true
 EnableTeXEnhancements = false
 DefaultDisplayMode = automatic
-DefaultZoom = fit page
+DefaultZoom = 150
 WindowState = 1
-WindowPos = 0 0 0 0
+WindowPos = 692 0 1112 1440
 ShowToc = true
 SidebarDx = 0
 TocDy = 0
@@ -66,10 +66,30 @@ ShowStartPage = true
 UseTabs = true
 
 FileStates [
+	[
+		FilePath = C:\Users\ilya\Downloads\12.pdf
+		Favorites [
+		]
+		IsPinned = false
+		IsMissing = false
+		OpenCount = 1
+		UseDefaultState = false
+		DisplayMode = continuous
+		ScrollPos = -1 -1
+		PageNo = 1
+		Zoom = fit page
+		Rotation = 0
+		WindowState = 1
+		WindowPos = 692 0 1112 1440
+		ShowToc = false
+		SidebarDx = 0
+		DisplayR2L = false
+		ReparseIdx = 0
+	]
 ]
 SessionData [
 ]
 TimeOfLastUpdateCheck = 0 0
-OpenCountWeek = 360
+OpenCountWeek = 411
 
 # Settings after this line have not been recognized by the current version
