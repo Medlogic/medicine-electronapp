@@ -75,13 +75,6 @@ module.exports = require("electron");
 /***/ 1:
 /***/ (function(module, exports) {
 
-module.exports = {"name":"production","debug":false,"fullscreen":true,"window_width":1100,"window_height":700,"app_list_version":6,"server_list":["http://127.0.0.1:80"]}
-
-/***/ }),
-
-/***/ 2:
-/***/ (function(module, exports) {
-
 module.exports = require("fs-jetpack");
 
 /***/ }),
@@ -95,20 +88,137 @@ module.exports = require("fs-jetpack");
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.StartUpdate = exports.ChangeUrl = exports.ShowConfig = exports.CloseConfig = exports.Loading = exports.TestConnection = exports.Enter = exports.Exit = void 0;
+exports.StartUpdate = exports.ChangeUrl = exports.ShowConfig = exports.CloseConfig = exports.Loading = exports.TestConnection = exports.Enter = exports.Exit = exports.ChangeUpdateState = void 0;
 
 __webpack_require__(28);
 
 var _electron = __webpack_require__(0);
 
-var _fsJetpack = _interopRequireDefault(__webpack_require__(2));
-
-var _env = _interopRequireDefault(__webpack_require__(1));
+var _fsJetpack = _interopRequireDefault(__webpack_require__(1));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var startTimer;
+let startTimer, startTimerInterval;
 var ipInput = $('#host').ipInput();
+const UPDATE_STATE = {
+  "AVAILABLE": 1,
+  "NOTAVAILABLE": 0,
+  "DOWNLOADING": 3
+};
+const CONNECTION_STATE = {
+  "ONLINE": 1,
+  "OFFLINE": 0,
+  "CHECKING": 3
+};
+const WINDOW_STATE = {
+  "CONFIG": 0,
+  "WELCOME": 1,
+  "WAIT": 2
+};
+
+const ChangeUpdateState = update_state => {
+  switch (update_state) {
+    case UPDATE_STATE.AVAILABLE:
+      $('#menu-button').html(`
+				<svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+					width="14" height="14"
+					viewBox="0 0 172 172">
+					<g>
+						<path d="M72.76923,0c-11.24099,0 -19.84615,8.60517 -19.84615,19.84615v52.92308h-21.91346c-9.2512,0 -10.59495,1.36959 -3.30769,9.30288l43.82692,43.62019c14.54868,14.54868 14.39363,14.54868 28.94231,0l43.82692,-43c7.93329,-8.60517 5.29747,-9.92308 -3.30769,-9.92308h-21.91346v-52.92308c0,-11.24099 -8.60517,-19.84615 -19.84615,-19.84615zM0,125.69231v26.46154c0,11.24099 8.60517,19.84615 19.84615,19.84615h132.30769c11.24099,0 19.84615,-8.60517 19.84615,-19.84615v-26.46154h-13.23077v26.46154c0,3.97957 -2.63581,6.61538 -6.61538,6.61538h-132.30769c-3.97956,0 -6.61538,-2.63581 -6.61538,-6.61538v-26.46154z"></path>
+					</g>
+				</svg>
+			`);
+      $('#menu-button').addClass('green');
+      $('#update-button').show();
+      break;
+
+    case UPDATE_STATE.DOWNLOADING:
+      $('#menu-button').html('☰');
+      $('#menu-button').removeClass('green');
+      $('#update-button').hide();
+      break;
+
+    case UPDATE_STATE.NOTAVAILABLE:
+    default:
+      $('#menu-button').html('☰');
+      $('#menu-button').removeClass('green');
+      $('#update-button').hide();
+      break;
+  }
+};
+
+exports.ChangeUpdateState = ChangeUpdateState;
+
+const ChangeConnectionState = connection_state => {
+  switch (connection_state) {
+    case CONNECTION_STATE.ONLINE:
+      $('#enter-button').removeClass('disabled loading');
+      $('.config').removeClass('disabled');
+      $('#enter-button .cube-folding').removeClass().addClass('cube-folding float');
+      console.log(connection_state);
+      break;
+
+    case CONNECTION_STATE.CHECKING:
+      $('#enter-button').addClass('disabled loading');
+      $('.config').addClass('disabled');
+      $('#enter-button .cube-folding').removeClass().addClass('cube-folding spin');
+      break;
+
+    case CONNECTION_STATE.OFFLINE:
+    default:
+      $('#enter-button').removeClass('loading');
+      $('#enter-button').addClass('disabled');
+      $('.config').removeClass('disabled');
+      $('#enter-button .cube-folding').removeClass().addClass('cube-folding shake');
+      console.log(connection_state);
+      break;
+  }
+};
+
+const ChangeWindowState = window_state => {
+  switch (window_state) {
+    case WINDOW_STATE.CONFIG:
+      $('#wait').fadeOut();
+      $('.welcome').fadeOut("fast", () => {
+        $('.config').fadeIn();
+      });
+      break;
+
+    case WINDOW_STATE.WELCOME:
+      $('#wait').fadeOut();
+      $('.config').fadeOut("fast", () => {
+        $('.welcome').fadeIn();
+      });
+      break;
+
+    case WINDOW_STATE.WAIT:
+    default:
+      $('#wait').fadeIn();
+      $('#wait').removeClass('light');
+      $('#wait').addClass('dark');
+      break;
+  }
+};
+
+const UpdateProgressBarState = (show, progress, title) => {
+  if (show) {
+    $('.progressbar-widget').fadeIn();
+    $('.progressbar-widget .title').html(title);
+    $('.progressbar-widget .bar').css('width', progress + '%');
+  } else {
+    clearTimeout(startTimer);
+    clearInterval(startTimerInterval);
+    $('.progressbar-widget').fadeOut(800);
+    progress = 100;
+    var localInterval = setInterval(function () {
+      console.log(progress);
+      $('.progressbar-widget .title').html('');
+      $('.progressbar-widget .bar').css('width', progress + '%');
+      progress -= 10 / 800 * 100;
+      if (progress <= 0) clearInterval(localInterval);
+    }, 10);
+  }
+};
 
 const Exit = () => {
   __webpack_require__(0).ipcRenderer.send('exit-application');
@@ -117,20 +227,15 @@ const Exit = () => {
 exports.Exit = Exit;
 
 const Enter = app_url => {
-  clearTimeout(startTimer);
-  $('.progressbar-widget').fadeOut();
-  $('.loading').fadeIn();
-  $('.loading').removeClass('dark');
-  $('.loading').addClass('light');
+  ChangeWindowState(WINDOW_STATE.WAIT);
+  UpdateProgressBarState(false);
 
   __webpack_require__(0).ipcRenderer.send('load-application', app_url);
 };
 
 exports.Enter = Enter;
 
-const TestConnection = haveUpdates => {//$('.loading').fadeIn()
-  //require('electron').ipcRenderer.send('check-connection', '')
-};
+const TestConnection = haveUpdates => {};
 
 exports.TestConnection = TestConnection;
 window.Enter = Enter;
@@ -140,28 +245,22 @@ const Loading = () => {};
 exports.Loading = Loading;
 
 const CloseConfig = () => {
-  $('.loading').hide();
-  $('.config').fadeOut("fast", () => {
-    $('.welcome').fadeIn();
-  });
+  ChangeWindowState(WINDOW_STATE.WELCOME);
 };
 
 exports.CloseConfig = CloseConfig;
 window.CloseConfig = CloseConfig;
 
 const ShowConfig = () => {
-  $('.loading').show();
-  clearTimeout(startTimer);
-  $('.progressbar-widget').fadeOut();
-  $('.welcome').fadeOut("fast", () => {
-    $('.config').fadeIn();
-  });
+  ChangeWindowState(WINDOW_STATE.CONFIG);
+  UpdateProgressBarState(false);
 };
 
 exports.ShowConfig = ShowConfig;
 window.ShowConfig = ShowConfig;
 
 const ChangeUrl = () => {
+  ChangeConnectionState(CONNECTION_STATE.CHECKING);
   var portStr = document.getElementById('port').value;
   var port = portStr > 0 && portStr < 65535 ? portStr : 80;
   var url = `http://${ipInput.getIp()}:${port}`;
@@ -169,31 +268,47 @@ const ChangeUrl = () => {
   __webpack_require__(0).ipcRenderer.send('check-connection', url);
 
   CloseConfig();
-  $('.loading').show();
+  $('#enter-button .title').html('');
+  $('#enter-button .params span:nth-child(2)').html(ipInput.getIp());
+  $('#enter-button .params span:nth-child(4)').html(port);
 };
 
 exports.ChangeUrl = ChangeUrl;
 
 const StartUpdate = () => {
-  $('.progressbar-widget').fadeOut();
-  $('.loading').fadeIn();
-  $('.loading').removeClass('light');
-  $('.loading').addClass('dark');
+  ChangeWindowState(WINDOW_STATE.WAIT);
 
   __webpack_require__(0).ipcRenderer.send('start-update');
 };
 
 exports.StartUpdate = StartUpdate;
 
+__webpack_require__(0).ipcRenderer.on('set-update-state', function (event, data) {
+  ChangeUpdateState(data.haveUpdates ? UPDATE_STATE.AVAILABLE : UPDATE_STATE.NOTAVAILABLE);
+});
+
 __webpack_require__(0).ipcRenderer.on('load', function (event, data) {
+  console.log('load');
+  console.log(data.msg.online);
+  ChangeWindowState(WINDOW_STATE.WELCOME);
   var app = data.msg;
 
   if (app !== undefined) {
-    $('.loading').fadeOut();
+    if (app.online === undefined) app.title = '';
     let welcomeList = `
-		<a id="enter-button" class="item ${app.online ? '' : 'disabled'}"  onclick="Enter('${app.url}')" >
+		<a id="enter-button" class="item"  onclick="Enter('${app.url}')" >
 			<div class="title">${app.title}</div>
-			<div class="icon policlinic"></div>
+			<!--<div class="icon policlinic"></div>-->
+			<div class="cube-wrapper">
+				<div class="cube-folding">
+				  <span class="leaf1"></span>
+				  <span class="leaf2"></span>
+				  <span class="leaf3"></span>
+				  <span class="leaf4"></span>
+				  <span class="leaf5"></span>
+				</div>
+			  </div>
+			</div>
 			<div class="params">
 				<b>HOST:</b><span>${app.host}</span>
 				<b>PORT:</b><span>${app.port}</span>
@@ -204,30 +319,28 @@ __webpack_require__(0).ipcRenderer.on('load', function (event, data) {
     $('.config').find('h3').html(app.title);
     $('.config').find('#port').val(app.port);
     ipInput.setIp(app.host);
+    if (app.online) ChangeConnectionState(CONNECTION_STATE.ONLINE);else if (app.online === undefined) ChangeConnectionState(CONNECTION_STATE.CHECKING);else ChangeConnectionState(CONNECTION_STATE.OFFLINE);
   } else {
     $('.welcome>.col12').html("Нет доступных серверов!");
   }
 
   if (app.online) {
-    $('.progressbar-widget').fadeIn();
-    var count = 0;
-    var countInterval = setInterval(function () {
-      $('.progressbar-widget .title').html(`ОТКРЫТИЕ ЧЕРЕЗ ${Math.floor(4 - count / 1000)} СЕК.`);
-      $('.progressbar-widget .bar').css('width', Math.floor(count / 4000 * 100) + '%');
+    let count = 0;
+    startTimerInterval = setInterval(function () {
+      UpdateProgressBarState(true, Math.floor(count / 4000 * 100), `ОТКРЫТИЕ ЧЕРЕЗ ${Math.floor(4 - count / 1000)} СЕК.`);
       count += 100;
-      if (count >= 4000) clearInterval(countInterval);
+      if (count >= 4000) clearInterval(startTimerInterval);
     }, 100);
     startTimer = setTimeout(function () {
-      $('.loading').fadeIn();
-      $('.progressbar-widget').fadeOut();
+      ChangeWindowState(WINDOW_STATE.WAIT);
+      UpdateProgressBarState(false);
 
       __webpack_require__(0).ipcRenderer.send('load-application', app.url);
     }, 4000);
   }
 });
 
-__webpack_require__(0).ipcRenderer.on('console', function (event, data) {
-  console.log(data.message);
+__webpack_require__(0).ipcRenderer.on('console', function (event, data) {//console.log(data.message)
 }); // ПРОВЕРКА ОБНОВЛЕНИЙ
 // 
 // 
@@ -240,7 +353,6 @@ __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
   switch (data.text) {
     case 'Проверка соединения':
       //console.log('Проверка соединения')
-      $('.loading').fadeOut();
       $('.welcome>.col12').html("Нет доступных серверов!");
       console.log('Проверка соединения'); //require('electron').ipcRenderer.send('check-update')
 
@@ -253,13 +365,9 @@ __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
       console.log('Нет новых обновлений'); //Auto startup 
       //TestConnection(false)
 
-      $('.loading').fadeIn();
-      $('.loading').removeClass('light');
-      $('.loading').addClass('dark');
       break;
 
     case 'Ошибка при подключении':
-      $('.loading').fadeOut();
       $('#status-bar').removeClass();
       $('#status-bar').addClass('ready');
       console.log('Ошибка при подключении');
@@ -269,10 +377,6 @@ __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
       //TestConnection(true)
       $('#status-bar').removeClass();
       $('#status-bar').addClass('ready');
-      $('#update-button').show();
-      $('.loading').fadeIn();
-      $('.loading').removeClass('light');
-      $('.loading').addClass('dark');
       break;
 
     case 'Подключение':
@@ -281,14 +385,13 @@ __webpack_require__(0).ipcRenderer.on('message', function (event, data) {
 
     case 'Загрузка обновлений':
     case 'Обновление загружено':
+      ChangeWindowState(WINDOW_STATE.WAIT);
       console.log('Загрузка обновлений');
 
       if (data.text == 'Загрузка обновлений') {
-        $('.loading-widget').show();
-        $('.loading-glow-stick').css('left', data.code + '%');
-        $('.loading-bar').css('width', data.code + '%');
+        if (data.code > 50 && data.code < 57) UpdateProgressBarState(true, data.code, `Половина пути пройдена, осталось не много!`);else if (data.code < 93) UpdateProgressBarState(true, data.code, `${Math.floor(data.code)} %`);else UpdateProgressBarState(true, data.code, `Приготовьтесь к чему-то невиданному!`);
       } else if (data.text == 'Обновление загружено') {
-        $('.loading-widget').fadeOut("slow");
+        UpdateProgressBarState(false);
       }
 
       $('#status-bar').removeClass();
@@ -317,6 +420,8 @@ $('#update-button').on('click', () => {
 $('#save-url').on('click', () => {
   ChangeUrl();
 });
+//import env from "env";
+//import { UPDATE_DOWNLOADED } from "electron-updater";
 const app = _electron.remote.app;
 
 const appDir = _fsJetpack.default.cwd(app.getAppPath());
@@ -366,7 +471,7 @@ exports = module.exports = __webpack_require__(3)(false);
 
 
 // module
-exports.push([module.i, "html{\r\n    border: 2px solid #ccc;\r\n    height: calc(100% - 4px);}\r\n  body{height: 100%}\r\n  body {user-select: none; overflow: hidden; margin: 0;  font-family: sans-serif;}\r\n  \r\n  .config{\r\n\t  \tdisplay: none;\r\n\t\tposition: absolute;\r\n\t\ttop: 0px;\r\n\t\tleft: 0px;\r\n\t\twidth: calc(100% - 40px);\r\n\t\theight: calc(100% - 40px);\r\n\t\tpadding: 20px;\r\n\t\tbackground: rgb(255, 255, 255);\r\n\t}\r\n\t.config form a{\r\n\t\tmargin: auto;\r\n\t\tmargin-top: 20px;\r\n\t\twidth: 90px;\r\n\t\tdisplay: block;\r\n\t}\r\n\t.config h3 {\r\n\t\tpadding-top: 20px;\r\n\t  \ttext-align: center;\r\n\t}\r\n\t.config form {\r\n\t\tpadding: 20px;\r\n\t\tborder: 1px solid #e6e6e6;\r\n\t\tborder-radius: 10px;\r\n\t}\r\n\t.config label {\r\n\t\twidth: 100px !important;\r\n\t\ttext-align: right;\r\n\t  \tdisplay: inline-block;\r\n\t}\r\n\t.config .form-group {\r\n\t  \tmargin-top: 10px;\r\n\t}\r\n\t.config input {\r\n\t  \tmargin: 0;\r\n\t}\r\n\t.config .form-group>div {\r\n\t  \tdisplay: inline-block;\r\n\t}\r\n  .welcome{display: none;}\r\n\r\n  #status-bar{text-align: center; position: absolute; left: 0; bottom: 0; height: 30px; width: 100%; \r\n              color: #ccc; z-index: 100; background: #555; transition: height 2.0s;}\r\n  #status-message{top: 50%; width: 100%;  position: absolute;}\r\n  .offline #status-message, .offline .ml-logo, .ready #status-message, .ready .ml-logo{opacity: 0;}\r\n  .wait #status-message, .wait .ml-logo{opacity: 1;}\r\n  .notready #status-message, .notready .ml-logo{opacity: 1;}\r\n\r\n  .status-icon{position: absolute; right: 20px; bottom: 10px; height: 10px; width: 10px; background: #ccc; border-radius: 5px;}\r\n  .ready .status-icon{background-color: #76f11c}\r\n  .wait .status-icon{background-color: #f1c51c}\r\n  .offline .status-icon{background-color: #aaa}\r\n  .notready .status-icon{background-color: #e06969}\r\n\r\n  #status-bar.ready, #status-bar.offline{height: 30px;}\r\n  #status-bar.wait{height: 100%;}\r\n  #status-bar.notready{height: calc(100% - 60px);}\r\n  .version{position: absolute; left: 20px; bottom: 0; line-height: 30px; color: #f0f0f0; font-size: 10px;}\r\n\r\n  .ml-logo{\r\n    width: 100%;\r\n    background: url(./images/logo.png) no-repeat center;\r\n    background-size: contain;\r\n    height: 80px;}\r\n\r\n\t.progressbar-widget {\r\n\t\tdisplay: none;\r\n\t\tposition: absolute;\r\n\t\twidth: 200px;\r\n\t\tbottom: 10px;\r\n\t\tleft: calc(50% - 100px);\r\n\t\theight: 20px;\r\n\t  }\r\n\t\t.progressbar-widget > .title {\r\n\t\t\tfont-size: 10px;\r\n\t\t\tline-height: 20px;\r\n\t\t\theight: 20px;\r\n\t\t\twidth: 200px;\r\n\t\t\toverflow: hidden;\r\n\t\t\t}\r\n\t\t.progressbar-widget > .holder {\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 200px;\r\n\t\t\theight: 4px;\r\n\t\t\tbottom: 0;\r\n\t\t\tbackground: #888;\r\n\t\t\t}\r\n\t\t.progressbar-widget > .holder > .bar {\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 0;\r\n\t\t\theight: 4px;\r\n\t\t\ttop: 0;\r\n\t\t\tbackground: #ccc;\r\n\t\t}\r\n\r\n  .loading-widget {\r\n    display: none;\r\n    width: 200px;\r\n    top: calc(50% + 50px);\r\n    background: #333;\r\n    border: 1px solid #555;\r\n    height: 20px;\r\n    position: absolute;\r\n    left: calc(50% - 100px);\r\n  }\r\n    .loading-bar {\r\n      width: 0;\r\n      top: 0;\r\n      background: #72b761;\r\n      height: 20px;\r\n      position: absolute;\r\n      left: 0;\r\n    }\r\n    .loading-glow-stick {\r\n      left: 0;\r\n      width: 1px;\r\n      top: 0;\r\n      background: #5fea3d;\r\n      height: 20px;\r\n      position: absolute;\r\n      box-shadow: 0 0 7px #1aef3d;\r\n      z-index: 100000;\r\n    }\r\n\r\n\r\n  /* #menu-button{display: none;} */\r\n  #update-button{display: none;}\r\n  .button{font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: none; padding: 5px 10px; color: #777;}\r\n  a.button:hover{color: #555; background-color: #ccc}\r\n  .close{position: absolute; left: 20px; top: 20px; color: #aaa;}\r\n  .back{position: absolute; right: 20px; top: 20px; color: #aaa;}\r\n  .update{position: absolute; right: 20px; bottom: 40px; color: #129c09; }\r\n  .add{\r\n    color: rgb(79, 177, 110);\r\n    border: 1px solid;\r\n    border-color: rgba(106, 144, 102, 0.48);\r\n    }\r\n\r\n  input{font-size: 14px; padding: 5px 10px; margin: 10px;}\r\n  .col6{width: 50%; float: left; margin-top: 50px;}\r\n\r\n  .center{text-align: center;}\r\n\r\n  .vertical-line{ position: absolute; width: 1px; height: 100%; left: 50%; background: #ddd}\r\n  \r\n  .welcome{\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 100%;\r\n  }\r\n  .welcome .col12{    width: 530px; text-align: center;}\r\n\r\n  .welcome a.item {\r\n    position: relative;\r\n\twidth: 90%;\r\n    height: 130px;\r\n    outline: 1px solid #eee;\r\n    margin: 10px;\r\n    display: inline-flex;\r\n    padding: 10px;\r\n    }\r\n\r\n\t.welcome a.item.disabled {\r\n\t\tpointer-events: none;\r\n\t\tcursor: default;\r\n\t\t}\r\n\t\t.welcome .item>.overlay {\r\n\t\t\tdisplay: none;\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 100%;\r\n\t\t\theight: 100%;\r\n\t\t\ttop: 0;\r\n\t\t\tleft: 0;\r\n\t\t\tbackground: #eeeeee77;\r\n\t\t}\r\n\t\t.welcome .item.disabled > .overlay {\r\n\t\t\tdisplay: block;\r\n\t\t}\r\n\r\n  .welcome a.item:hover {\r\n    cursor: pointer;\r\n    background: #fafafa;\r\n    }\r\n  .welcome a>.title{text-align: center; width: 100%; text-transform: uppercase; color: #646464;}\r\n  .welcome a.item>.icon{\r\n    position: absolute;\r\n    width: 75px;\r\n    height: 75px;\r\n    left: 50%;\r\n    top: 50%;\r\n    transform: translateX(-50%) translateY(-50%);\r\n  }\r\n  .welcome a.item>.params{\r\n    position: absolute;\r\n\tbottom: 0;\r\n\tright:0;\r\n\tfont-size: 70%;\r\n   \tcolor: #555;\r\n  }\r\n  .welcome a.item>.params > b{\r\n\tmargin-left: 10px;\r\n  \tcolor: #999;\r\n  }\r\n  .welcome a.item>.params > span{\r\n\tmargin-left: 5px;\r\n  }\r\n\r\n  .icon.policlinic{\r\n    background: url('./images/policlinic.png'); \r\n    background-size: cover;\r\n    background-repeat: no-repeat;}\r\n  .icon.traumatology{\r\n    background: url('./images/traumatology.png');  \r\n    background-size: cover;\r\n    background-repeat: no-repeat;}\r\n\r\n  .welcome a>.params{\r\n    position: absolute;\r\n    bottom: 5px;\r\n    text-align: center;\r\n    font-size: 10px;\r\n    width: 100%;\r\n    left: 0;\r\n    color: #b0b0b0 !important;\r\n  }\r\n  .welcome a span{margin-right: 5px; }\r\n\r\n  .config ul>li{list-style:  square; margin-bottom: 15px;}\r\n  .config li>span,.config li>b{\r\n    font-size: 13px;\r\n    color: #777; }\r\n  .config li>span{margin-right: 15px; }\r\n  \r\n  form{padding-bottom: 25px;}\r\n\r\n\r\n.spinner > div {\r\n  width: 18px;\r\n  height: 18px;\r\n  background-color: #e33;\r\n\r\n  border-radius: 100%;\r\n  display: inline-block;\r\n  -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;\r\n  animation: sk-bouncedelay 1.4s infinite ease-in-out both;\r\n}\r\n\r\n.spinner .bounce1 {\r\n  -webkit-animation-delay: -0.32s;\r\n  animation-delay: -0.32s;\r\n}\r\n\r\n.spinner .bounce2 {\r\n  -webkit-animation-delay: -0.16s;\r\n  animation-delay: -0.16s;\r\n}\r\n\r\n@-webkit-keyframes sk-bouncedelay {\r\n  0%, 80%, 100% { -webkit-transform: scale(0) }\r\n  40% { -webkit-transform: scale(1.0) }\r\n}\r\n\r\n@keyframes sk-bouncedelay {\r\n  0%, 80%, 100% { \r\n    -webkit-transform: scale(0);\r\n    transform: scale(0);\r\n  } 40% { \r\n    -webkit-transform: scale(1.0);\r\n    transform: scale(1.0);\r\n  }\r\n}\r\n\r\n\r\n\r\n/* ANIMATION */\r\n  .loading{   \r\n\t/* display: none !important; */\r\n    /* position: absolute; */\r\n    width: 100%;\r\n    height: 100%;\r\n    z-index: 10;\r\n    background: rgb(233, 255, 249, 0);\r\n    left: 0;\r\n    top: 0;\r\n    transition: all 1.0s;\r\n  }\r\n  .loading.dark{\r\n    background: rgb(233, 255, 249);\r\n    /* background: rgb(85,85,85); */\r\n  }\r\n  .loading.light{\r\n    background: rgb(233, 255, 249);\r\n  }\r\n.cube-folding {\r\n  position: absolute;\r\n  left: 12.5px;\r\n  top: 37.5px;\r\n  width: 50px;\r\n  height: 50px;\r\n  display: inline-block;\r\n  font-size: 0;\r\n}\r\n.cube-folding span {\r\n  position: absolute;\r\n  width: 25px;\r\n  height: 25px;\r\n  display: inline-block;\r\n}\r\n.cube-folding span::before {\r\n  content: '';\r\n  background-color: #f76363;\r\n  position: absolute;\r\n  left: 0;\r\n  top: 0;\r\n  display: block;\r\n  width: 25px;\r\n  height: 25px;\r\n  transform-origin: 100% 100%;\r\n  -moz-animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n  -webkit-animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n  animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n}\r\n.cube-folding .leaf2 {\r\n  -moz-transform: translateX(-100%);\r\n  -ms-transform: translateX(-100%);\r\n  -webkit-transform: translateX(-100%);\r\n  transform: translateX(-100%);\r\n}\r\n.cube-folding .leaf2::before {\r\n  -moz-animation-delay: 0.3s;\r\n  -webkit-animation-delay: 0.3s;\r\n  animation-delay: 0.3s;\r\n}\r\n.cube-folding .leaf3 {\r\n  -moz-transform: translateX(100%);\r\n  -ms-transform: translateX(100%);\r\n  -webkit-transform: translateX(100%);\r\n  transform: translateX(100%);\r\n}\r\n.cube-folding .leaf3::before {\r\n  -moz-animation-delay: 0.9s;\r\n  -webkit-animation-delay: 0.9s;\r\n  animation-delay: 0.9s;\r\n}\r\n.cube-folding .leaf4 {\r\n  -moz-transform: translateY(-100%);\r\n  -ms-transform: translateY(-100%);\r\n  -webkit-transform: translateY(-100%);\r\n  transform: translateY(-100%);\r\n}\r\n.cube-folding .leaf4::before {\r\n  -moz-animation-delay: 0.6s;\r\n  -webkit-animation-delay: 0.6s;\r\n  animation-delay: 0.6s;\r\n}\r\n.cube-folding .leaf5 {\r\n  -moz-transform: translateY(100%);\r\n  -ms-transform: translateY(100%);\r\n  -webkit-transform: translateY(100%);\r\n  transform: translateY(100%);\r\n}\r\n.cube-folding .leaf5::before {\r\n  -moz-animation-delay: 1.2s;\r\n  -webkit-animation-delay: 1.2s;\r\n  animation-delay: 1.2s;\r\n}\r\n\r\n@-moz-keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -moz-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -moz-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -moz-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n@-webkit-keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -webkit-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -webkit-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -webkit-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n@keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    -moz-transform: perspective(140px) rotateX(-180deg);\r\n    -ms-transform: perspective(140px) rotateX(-180deg);\r\n    -webkit-transform: perspective(140px) rotateX(-180deg);\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    -moz-transform: perspective(140px) rotateX(0deg);\r\n    -ms-transform: perspective(140px) rotateX(0deg);\r\n    -webkit-transform: perspective(140px) rotateX(0deg);\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    -moz-transform: perspective(140px) rotateX(180deg);\r\n    -ms-transform: perspective(140px) rotateX(180deg);\r\n    -webkit-transform: perspective(140px) rotateX(180deg);\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n.cube-wrapper {\r\n  position: fixed;\r\n  left: 50%;\r\n  top: 50%;\r\n  margin-top: -50px;\r\n  margin-left: -50px;\r\n  width: 100px;\r\n  height: 100px;\r\n  text-align: center;\r\n}\r\n\r\n.ip-input-container > input {padding: 0;}", ""]);
+exports.push([module.i, "html{\r\n    border: 2px solid #ccc;\r\n    height: calc(100% - 4px);}\r\n  body{height: 100%}\r\n  body {user-select: none; overflow: hidden; margin: 0;  font-family: sans-serif;}\r\n  \r\n  .config{\r\n\t  \tdisplay: none;\r\n\t\tposition: absolute;\r\n\t\ttop: 0px;\r\n\t\tleft: 0px;\r\n\t\twidth: calc(100% - 40px);\r\n\t\theight: calc(100% - 40px);\r\n\t\tpadding: 20px;\r\n\t\tbackground: rgb(255, 255, 255);\r\n\t}\r\n\t.config form a{\r\n\t\tmargin: auto;\r\n\t\tmargin-top: 20px;\r\n\t\twidth: 90px;\r\n\t\tdisplay: block;\r\n\t}\r\n\t.config h3 {\r\n\t\tpadding-top: 20px;\r\n\t  \ttext-align: center;\r\n\t}\r\n\t.config form {\r\n\t\tpadding: 20px;\r\n\t\tborder: 1px solid #e6e6e6;\r\n\t\tborder-radius: 10px;\r\n\t}\r\n\t.config label {\r\n\t\twidth: 100px !important;\r\n\t\ttext-align: right;\r\n\t  \tdisplay: inline-block;\r\n\t}\r\n\t.config .form-group {\r\n\t  \tmargin-top: 10px;\r\n\t}\r\n\t.config input {\r\n\t\tborder: 1px solid #ccc;\r\n\t  \tmargin: 0;\r\n\t}\r\n\t.config .form-group>div {\r\n\t  \tdisplay: inline-block;\r\n\t}\r\n\t.config.disabled .form-group input, .config.disabled .form-group #host, .config.disabled #save-url{    \r\n\t\tbackground-color: #ddd;\r\n\t\tpointer-events: none;\r\n\t}\r\n\r\n\r\n  .welcome{display: none;}\r\n\r\n  #status-bar{text-align: center; position: absolute; left: 0; bottom: 0; height: 30px; width: 100%; \r\n              color: #ccc; z-index: 100; background: #555; transition: height 2.0s;}\r\n  #status-message{top: 50%; width: 100%;  position: absolute;}\r\n  .offline #status-message, .offline .ml-logo, .ready #status-message, .ready .ml-logo{opacity: 0;}\r\n  .wait #status-message, .wait .ml-logo{opacity: 1;}\r\n  .notready #status-message, .notready .ml-logo{opacity: 1;}\r\n\r\n  .status-icon{position: absolute; right: 20px; bottom: 10px; height: 10px; width: 10px; background: #ccc; border-radius: 5px;}\r\n  .ready .status-icon{background-color: #76f11c}\r\n  .wait .status-icon{background-color: #f1c51c}\r\n  .offline .status-icon{background-color: #aaa}\r\n  .notready .status-icon{background-color: #e06969}\r\n\r\n  #status-bar.ready, #status-bar.offline{height: 30px;}\r\n  #status-bar.wait{height: 100%;}\r\n  #status-bar.notready{height: calc(100% - 60px);}\r\n  .version{position: absolute; left: 20px; bottom: 0; line-height: 30px; color: #f0f0f0; font-size: 10px;}\r\n\r\n  .ml-logo{\r\n    width: 100%;\r\n    background: url(./images/logo.png) no-repeat center;\r\n    background-size: contain;\r\n    height: 80px;}\r\n\r\n\t.progressbar-widget {\r\n\t\tdisplay: none;\r\n\t\tposition: absolute;\r\n\t\twidth: 200px;\r\n\t\tbottom: 10px;\r\n\t\tleft: calc(50% - 100px);\r\n\t\theight: 20px;\r\n\t  }\r\n\t\t.progressbar-widget > .title {\r\n\t\t\tfont-size: 10px;\r\n\t\t\tline-height: 20px;\r\n\t\t\theight: 20px;\r\n\t\t\twidth: 200px;\r\n\t\t\toverflow: hidden;\r\n\t\t\t}\r\n\t\t.progressbar-widget > .holder {\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 200px;\r\n\t\t\theight: 4px;\r\n\t\t\tbottom: 0;\r\n\t\t\tbackground: #888;\r\n\t\t\t}\r\n\t\t.progressbar-widget > .holder > .bar {\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 0;\r\n\t\t\theight: 4px;\r\n\t\t\ttop: 0;\r\n\t\t\tbackground: #ccc;\r\n\t\t}\r\n\r\n  .loading-widget {\r\n    display: none;\r\n    width: 200px;\r\n    top: calc(50% + 50px);\r\n    background: #333;\r\n    border: 1px solid #555;\r\n    height: 20px;\r\n    position: absolute;\r\n    left: calc(50% - 100px);\r\n  }\r\n    .loading-bar {\r\n      width: 0;\r\n      top: 0;\r\n      background: #72b761;\r\n      height: 20px;\r\n      position: absolute;\r\n      left: 0;\r\n    }\r\n    .loading-glow-stick {\r\n      left: 0;\r\n      width: 1px;\r\n      top: 0;\r\n      background: #5fea3d;\r\n      height: 20px;\r\n      position: absolute;\r\n      box-shadow: 0 0 7px #1aef3d;\r\n      z-index: 100000;\r\n    }\r\n\r\n\r\n  /* #menu-button{display: none;} */\r\n  #update-button{display: none;}\r\n  .button{font-size: 14px; font-weight: bold; text-transform: uppercase; text-decoration: none; padding: 5px 10px; color: #777;}\r\n  .close{position: absolute; left: 20px; top: 20px; color: #aaa;}\r\n  .back{position: absolute; right: 20px; top: 20px; color: #aaa;}\r\n  .update{position: absolute; right: 20px; bottom: 40px; color: #129c09; }\r\n  #menu-button.green{color: #129c09; } \r\n  #menu-button.green > svg{fill: #129c09; } \r\n  a.button:hover{color: #555; background-color: #ccc}\r\n  a.button:hover > svg{fill: #555 !important; }\r\n  .add{\r\n    color: rgb(79, 177, 110);\r\n    border: 1px solid;\r\n    border-color: rgba(106, 144, 102, 0.48);\r\n    }\r\n\r\n  input{font-size: 14px; padding: 5px 10px; margin: 10px;}\r\n  .col6{width: 50%; float: left; margin-top: 50px;}\r\n\r\n  .center{text-align: center;}\r\n\r\n  .vertical-line{ position: absolute; width: 1px; height: 100%; left: 50%; background: #ddd}\r\n  \r\n  .welcome{\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 100%;\r\n  }\r\n  .welcome .col12{    width: 530px; text-align: center;}\r\n\r\n  .welcome a.item {\r\n    position: relative;\r\n\twidth: 90%;\r\n    height: 130px;\r\n    outline: 1px solid #eee;\r\n    margin: 10px;\r\n    display: inline-flex;\r\n    padding: 10px;\r\n    }\r\n\r\n\t.welcome a.item.disabled {\r\n\t\tpointer-events: none;\r\n\t\tcursor: default;\r\n\t\t}\r\n\t\t.welcome .item>.overlay {\r\n\t\t\tdisplay: none;\r\n\t\t\tposition: absolute;\r\n\t\t\twidth: 100%;\r\n\t\t\theight: 100%;\r\n\t\t\ttop: 0;\r\n\t\t\tleft: 0;\r\n\t\t\tbackground: #eeeeee77;\r\n\t\t}\r\n\t\t.welcome .item.disabled > .overlay {\r\n\t\t\tdisplay: block;\r\n\t\t}\r\n\r\n  .welcome a.item:hover {\r\n    cursor: pointer;\r\n    background: #fafafa;\r\n    }\r\n  .welcome a>.title{text-align: center; width: 100%; text-transform: uppercase; color: #646464;}\r\n  .welcome a.item>.icon{\r\n    position: absolute;\r\n    width: 75px;\r\n    height: 75px;\r\n    left: 50%;\r\n    top: 50%;\r\n    transform: translateX(-50%) translateY(-50%);\r\n  }\r\n  .welcome a.item>.params{\r\n    position: absolute;\r\n\tbottom: 0;\r\n\tright:0;\r\n\tfont-size: 70%;\r\n   \tcolor: #555;\r\n  }\r\n  .welcome a.item>.params > b{\r\n\tmargin-left: 10px;\r\n  \tcolor: #999;\r\n  }\r\n  .welcome a.item>.params > span{\r\n\tmargin-left: 5px;\r\n  }\r\n\r\n  .icon.policlinic{\r\n    background: url('./images/policlinic.png'); \r\n    background-size: cover;\r\n    background-repeat: no-repeat;}\r\n  .icon.traumatology{\r\n    background: url('./images/traumatology.png');  \r\n    background-size: cover;\r\n    background-repeat: no-repeat;}\r\n\r\n  .welcome a>.params{\r\n    position: absolute;\r\n    bottom: 5px;\r\n    text-align: center;\r\n    font-size: 10px;\r\n    width: 100%;\r\n    left: 0;\r\n    color: #b0b0b0 !important;\r\n  }\r\n  .welcome a span{margin-right: 5px; }\r\n\r\n  .config ul>li{list-style:  square; margin-bottom: 15px;}\r\n  .config li>span,.config li>b{\r\n    font-size: 13px;\r\n    color: #777; }\r\n  .config li>span{margin-right: 15px; }\r\n  \r\n  form{padding-bottom: 25px;}\r\n\r\n\r\n.spinner > div {\r\n  width: 18px;\r\n  height: 18px;\r\n  background-color: #e33;\r\n\r\n  border-radius: 100%;\r\n  display: inline-block;\r\n  -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;\r\n  animation: sk-bouncedelay 1.4s infinite ease-in-out both;\r\n}\r\n\r\n.spinner .bounce1 {\r\n  -webkit-animation-delay: -0.32s;\r\n  animation-delay: -0.32s;\r\n}\r\n\r\n.spinner .bounce2 {\r\n  -webkit-animation-delay: -0.16s;\r\n  animation-delay: -0.16s;\r\n}\r\n\r\n@-webkit-keyframes sk-bouncedelay {\r\n  0%, 80%, 100% { -webkit-transform: scale(0) }\r\n  40% { -webkit-transform: scale(1.0) }\r\n}\r\n\r\n@keyframes sk-bouncedelay {\r\n  0%, 80%, 100% { \r\n    -webkit-transform: scale(0);\r\n    transform: scale(0);\r\n  } 40% { \r\n    -webkit-transform: scale(1.0);\r\n    transform: scale(1.0);\r\n  }\r\n}\r\n\r\n\r\n\r\n/* ANIMATION */\r\n.loading{   \r\ndisplay: none ;\r\n/* position: absolute; */\r\nwidth: 100%;\r\nheight: 100%;\r\nz-index: 10;\r\nbackground: rgb(233, 255, 249, 0);\r\nleft: 0;\r\ntop: 0;\r\ntransition: all 1.0s;\r\n}\r\n.loading.dark{\r\nbackground: rgb(233, 255, 249);\r\n/* background: rgb(85,85,85); */\r\n}\r\n.loading.light{\r\nbackground: rgb(233, 255, 249);\r\n}\r\n.cube-wrapper {\r\n\tposition: absolute;\r\n\tleft: 50%;\r\n\ttop: 50%;\r\n\tmargin-top: -50px;\r\n\tmargin-left: -50px;\r\n\twidth: 100px;\r\n\theight: 100px;\r\n\ttext-align: center;\r\n}\r\n\r\n.cube-folding {\r\n  position: absolute;\r\n  left: 12.5px;\r\n  top: 37.5px;\r\n  width: 50px;\r\n  height: 50px;\r\n  display: inline-block;\r\n  font-size: 0;\r\n}\r\n.cube-folding span {\r\n  position: absolute;\r\n  width: 25px;\r\n  height: 25px;\r\n  display: inline-block;\r\n}\r\n.cube-folding span::before {\r\n  content: '';\r\n  background-color: #f76363;\r\n  position: absolute;\r\n  left: 0;\r\n  top: 0;\r\n  display: block;\r\n  width: 25px;\r\n  height: 25px;\r\n}\r\n.loading .cube-folding span::before {\r\n  transform-origin: 100% 100%;\r\n  animation: folding 3.2s infinite cubic-bezier(0.6, 0.01, 0.4, 1) both;\r\n}\r\n.cube-folding.shake {\r\n\ttransform-origin: 75% 25%;\r\n\tanimation: shake 4s infinite ease-in-out;\r\n}\r\n.cube-folding.float {\r\n\ttransform-origin: 75% 25%;\r\n\tanimation: float 4s infinite ease-in-out;\r\n}\r\n.cube-folding.spin {\r\n\ttransform-origin: 75% 25%;\r\n\tanimation: spin 4s infinite ease-in-out;\r\n}\r\n\r\n.cube-folding .leaf2 {\r\n  transform: translateX(-95%);\r\n}\r\n.loading .cube-folding .leaf2::before {\r\n  animation-delay: 0.3s;\r\n}\r\n .cube-folding .leaf3 {\r\n  transform: translateX(95%);\r\n}\r\n.loading .cube-folding .leaf3::before {\r\n  animation-delay: 0.9s;\r\n}\r\n .cube-folding .leaf4 {\r\n  transform: translateY(-95%);\r\n}\r\n.loading .cube-folding .leaf4::before {\r\n  animation-delay: 0.6s;\r\n}\r\n .cube-folding .leaf5 {\r\n  transform: translateY(95%);\r\n}\r\n.loading .cube-folding .leaf5::before {\r\n  animation-delay: 1.2s;\r\n}\r\n\r\n\r\n@keyframes folding {\r\n  0%, 10% {\r\n    transform-origin: 0% 0%;\r\n    transform: perspective(140px) rotateX(-180deg);\r\n    opacity: 0;\r\n  }\r\n  25%, 75% {\r\n    transform: perspective(140px) rotateX(0deg);\r\n    opacity: 1;\r\n  }\r\n  90%, 100% {\r\n    transform-origin: 100% 100%;\r\n    transform: perspective(140px) rotateX(180deg);\r\n    opacity: 0;\r\n  }\r\n}\r\n\r\n@keyframes float {\r\n\t0% { transform: translateY(0) }\r\n\t33.33333% { transform: translateY(-6px) }\r\n\t66.66667% { transform: translateY(0) }\r\n\t100% { transform: translateY(0) }\r\n}\r\n@keyframes shake {\r\n\t0% { transform:rotate(0deg) }\r\n\t8.69565% { transform:rotate(24deg) }\r\n\t15.65217% { transform:rotate(-24deg) }\r\n\t17.39131% { transform:rotate(-24deg) }\r\n\t24.34782% { transform:rotate(24deg) }\r\n\t26.08696% { transform:rotate(24deg) }\r\n\t33.04348% { transform:rotate(-24deg) }\r\n\t34.78261% { transform:rotate(-24deg) }\r\n\t41.73913% { transform:rotate(24deg) }\r\n\t43.47826% { transform:rotate(24deg) }\r\n\t50.43478% { transform:rotate(-24deg) }\r\n\t52.17391% { transform:rotate(-24deg) }\r\n\t59.13044% { transform:rotate(24deg) }\r\n\t65.21739% { transform:rotate(0deg) }\r\n\t100% { transform:rotate(0deg) }\r\n}\r\n@keyframes spin {\r\n  0% { transform:rotate(0deg) }\r\n  80% { transform:rotate(360deg) }\r\n  100% { transform:rotate(360deg) }\r\n}\r\n\r\n\r\n.ip-input-container > input {padding: 0;}", ""]);
 
 // exports
 

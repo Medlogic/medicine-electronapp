@@ -10,6 +10,7 @@ import {
 } from 'electron';
 
 
+
 const { download } = require('electron-dl');
 const fs = require('fs')
 const os = require('os')
@@ -230,13 +231,16 @@ app.on('ready', () => {
 		store.set('app_port', app_url_parse.port)
 	}
 	
+	store.set('app_online', undefined)
 	welcome.createWelcomeWindow(store)
 	welcome.welcomeWindow.webContents.on('did-finish-load', () => {
+		welcome.updateWelcomeWindow()
 		welcome.welcomeWindow.show()
 		if (env.name == 'development')
 			 welcome.welcomeWindow.webContents.send('message', { "text": 'Ошибка при обновлении', "code": 0 });
 		else
 			welcome.checkUpdates()
+			
 		checkConnection(store.get('app_url'))
 	})
 })
@@ -279,7 +283,7 @@ const checkConnection = (url) => {
 		});
 	}).on('error', (e) => {
 		store.set('app_online', false)
-		if(welcome)
+		if(welcome.welcomeWindow)
 			welcome.updateWelcomeWindow()
 	});
 }
@@ -346,8 +350,8 @@ ipcMain.on('print', (event, arg) => {
 			}
 
 		let httpOptions = {
-			hostname: store.get('app_host'), //env.app_host,
-			port: store.get('app_port'), //env.app_port,
+			hostname: store.get('app_host'),
+			port: store.get('app_port'),
 			path: arg.url,
 			method: 'GET',
 			headers: {
@@ -356,44 +360,30 @@ ipcMain.on('print', (event, arg) => {
 		};
 
 		http.get(httpOptions, (response) => {
-			//welcome.Console("http.get response")
-			//welcome.Console(file)
 			let stream = response.pipe(file);
 			
 			stream.on('finish', () => {
-				//welcome.Console("stream finish")
 				if (arg.thermal_printer !== true) {
 					
-					//welcome.Console("sumatraPrintSettings")
 					let sumatraPrintSettings = arg.duplex === true ? ['-print-to-default', '-print-settings', 'duplexlong', fileName] : ['-print-to-default', fileName]
 					try {
 						execFile(__dirname + '\\SumatraPDF.exe', sumatraPrintSettings, (error, stdout, stderr) => {
-							//welcome.Console("execFile")
 							if (error) {
 								fs.unlink(fileName, (err) => {
-									//welcome.Console("unlink after error")
 									if (err) {
-										//welcome.Console("err unlink after error")
-										//welcome.Console(err)
 										if (env.debug) throw err;
 									}
 								});
-								//welcome.Console("error")
-								//welcome.Console(error)
 								if (env.debug) throw error;
 							}
 		
 							fs.unlink(fileName, (err) => {
-								//welcome.Console("unlink")
 								if (err) {
-									//welcome.Console("err")
-									//welcome.Console(err)
 									if (env.debug) throw err;
 								}
 							});
 						});
 					} catch (ex) {
-						//welcome.Console("exception")
 						//welcome.Console(ex)
 					}
 				} else if (FindThermalPrinter() !== undefined) {
