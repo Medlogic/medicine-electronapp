@@ -67,7 +67,7 @@
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "chai": "^4.1.0",
     "css-loader": "^0.28.7",
-    "electron": "^3.0.9",
+    "electron": "^9.1.0",
     "electron-builder": "^19.55.2",
     "electron-mocha": "^4.0.0",
     "electron-rebuild": "^1.8.5",
