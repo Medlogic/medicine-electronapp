@@ -48,7 +48,7 @@ const replaceUrls = [
 
 let args = process.argv.slice(process.platform == 'win32' ? 1 : 2)
 
-const barcodeScannerDevices = ['0C2E', '1A86', 'AC90']
+const barcodeScannerDevices = ['0C2E', '1A86', 'AC90', '05E0']
 
 const updateConfig = () => {
 	for (var i in args) {
@@ -462,6 +462,7 @@ const InitBarcodeScanner = (port) => {
 		for (const pair of data.entries()) {
 			arr.push(pair[1])
 		}
+		console.log(arr)
 		mainWindow.webContents.send('search_beep', { code: arr });
 	});
 }

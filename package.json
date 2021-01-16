@@ -2,16 +2,16 @@
   "name": "medicine",
   "productName": "Medicine",
   "description": "Hospital information system application",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "license": "MIT",
   "author": "MedLogic",
-  "copyright": "© 2019, MedLogic inc.",
+  "copyright": "© 2021, MedLogic inc.",
   "homepage": "http://med-logic.ru",
   "main": "app/background.js",
   "build": {
-	"appId": "com.electron.medicine",
-	"asar": false,
+    "appId": "com.electron.medicine",
+    "asar": false,
     "productName": "Medicine",
     "files": [
       "app/**/*",
@@ -26,15 +26,17 @@
         {
           "target": "nsis",
           "arch": [
-			"ia32"
+            "ia32"
           ]
         }
       ],
       "icon": "./icon.ico"
     },
-	"publish": [{
-		"provider": "github"
-	}],
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ],
     "nsis": {
       "oneClick": "true",
       "perMachine": "true",
@@ -42,6 +44,7 @@
     }
   },
   "scripts": {
+    "install": "electron-rebuild",
     "postinstall": "electron-builder install-app-deps",
     "preunit": "webpack --config=build/webpack.unit.config.js --env=test --display=none",
     "unit": "electron-mocha temp/specs.js --renderer --require source-map-support/register",
@@ -67,7 +70,7 @@
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "chai": "^4.1.0",
     "css-loader": "^0.28.7",
-    "electron": "^3.0.9",
+    "electron": "^3.1.6",
     "electron-builder": "^19.55.2",
     "electron-mocha": "^4.0.0",
     "electron-rebuild": "^1.8.5",

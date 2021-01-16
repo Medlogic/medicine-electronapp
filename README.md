@@ -1,3 +1,20 @@
+# install serialport
+```
+https://serialport.io/docs/guide-installation
+When you first install serialport it will compile against the version of Node.js on your machine, not against the Node.js runtime bundled with Electron.
+
+To recompile serialport (or any native Node.js module) for Electron, you can use electron-rebuild; more info at Electron's README.
+
+npm install --save-dev electron-rebuild
+Add electron-rebuild to your project's package.json's install hook
+Run npm install
+
+For an example project, check out electron-serialport.
+https://github.com/serialport/electron-serialport
+
+//npm install serialport@"^6.2.2" --unsafe-perm --build-from-source
+```
+
 # medicine-electronapp
 ```
 ---
